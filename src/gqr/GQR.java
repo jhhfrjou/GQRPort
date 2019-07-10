@@ -75,7 +75,7 @@ public class GQR {
     public static void main(String[] args) throws FileNotFoundException {
 
 
-        int run = 0;
+        int run = 95;
 
         //HPCC line below
 
@@ -111,7 +111,7 @@ public class GQR {
             long st = System.currentTimeMillis();
 
 //						GQR g = new GQR(new File(System.getProperty("user.dir")+"/queryHD_"+run+".txt"),new File(System.getProperty("user.dir")+"/views_"+run+".txt"), viewNo);
-            GQR g = new GQR(System.getProperty("user.dir")+"/GQR/run_"+run+"/query_"+run+".txt",System.getProperty("user.dir")+"/GQR/run_"+run+"/views_for_q_"+run+".txt");
+            GQR g = new GQR(System.getProperty("user.dir")+"/GQR/resources/queryHD_"+run+".txt",System.getProperty("user.dir")+"/GQR/resources/views_"+run+".txt",30);
 
             int recorderViewNo = viewNo;
 //
@@ -187,18 +187,17 @@ public class GQR {
      * @param gueryFile the file containing the query
      * @param viewsFile the file containing the sources
      */
-    public GQR(String gueryFile, String viewsFile)
+    public GQR(String gueryFile, String viewsFile, int numberOfSources)
     {
 
         long st = System.currentTimeMillis();
         try {
-            List<Query> views = getQueriesFromFile(viewsFile);
+            List<Query> views = getQueriesFromFile(viewsFile,numberOfSources);
             Pair <Map <SourcePredicateJoin,List<SourcePredicateJoin>>,Map <SourcePredicateJoin,List<SourcePredicateJoin>>> pjs = Query.createSourcePredicateJoins(views);
             sourcePJs = pjs.getA();
             indexSourcePJs = pjs.getB();
             dontCountTime += System.currentTimeMillis() - st;
-            query = new Query(getQueriesFromFile(gueryFile).get(0));
-            System.out.println("Files in");
+            query = getQueriesFromFile(gueryFile,1).get(0);
             query.computeQueryPJs();
         } catch (Exception e) {
             e.printStackTrace();
@@ -219,7 +218,7 @@ public class GQR {
 
 
 
-    public List<Query> getQueriesFromFile(String resourceName) throws Exception {
+    public List<Query> getQueriesFromFile(String resourceName, int numberOfSources) throws Exception {
         Set<Rule> cbRules = new LinkedHashSet<>();
         List<Query> queries = new ArrayList<>();
         InputStream resourceStream = new FileInputStream(resourceName);
@@ -235,6 +234,9 @@ public class GQR {
         input.close();
         uk.ac.ox.cs.chaseBench.model.DatabaseSchema dbSchema;
         for ( Rule rule: cbRules) {
+            if (queries.size() == numberOfSources) {
+                return queries;
+            }
             dbSchema = new uk.ac.ox.cs.chaseBench.model.DatabaseSchema();
             for(uk.ac.ox.cs.chaseBench.model.Atom atom : rule.getBodyAtoms()) {
                 if (!dbSchema.getPredicates().contains(atom.getPredicate())) {
@@ -303,9 +305,7 @@ public class GQR {
             else
                 currentCPJSets.add(source_pjs);
         }
-        while(!currentCPJSets.isEmpty()) //iterates over partial sets of query coverings
-        {
-            System.out.println(currentCPJSets.size());
+        while(!currentCPJSets.isEmpty()) { //iterates over partial sets of query coverings
             Pair<CPJCoverSet,CPJCoverSet>  p = null;
             try{
                 p = select(currentCPJSets); //must always exist a pair until we reach a complete rewriting

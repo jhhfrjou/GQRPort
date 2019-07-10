@@ -78,8 +78,7 @@ public class SourcePredicateJoin extends PredicateJoin {
 		ArrayList<Integer> distinguishedPositions= new ArrayList<Integer>();
 
 		Map<Integer, GQRNode> gnods = getGqrNodes();
-		for(int i=1; i<= gnods.size(); i++)
-		{ 
+		for(int i=1; i<= gnods.size(); i++) {
 			GQRNode nod = gnods.get(i);
 			if(!nod.isExistential())
 				distinguishedPositions.add(i);
@@ -107,7 +106,6 @@ public class SourcePredicateJoin extends PredicateJoin {
 			spj.setGqrNodes(nodes);
 			ret.add(spj);
 		}
-
 		return ret;
 	}
 
@@ -181,7 +179,7 @@ public class SourcePredicateJoin extends PredicateJoin {
 
 		for(int i=1; i<=map.size(); i++)
 		{
-			GQRNode thisNode = map.get(new Integer(i));
+			GQRNode thisNode = map.get(i);
 			GQRNode clonedNode = thisNode.clone();//haven't yet implemented Predicate#clone()
 			//TODO maybe we don't have to clone the predicates
 			
@@ -231,7 +229,7 @@ public class SourcePredicateJoin extends PredicateJoin {
 
 		for(int i=1; i<=map.size(); i++)
 		{
-			GQRNode thisNode = map.get(new Integer(i));
+			GQRNode thisNode = map.get(i);
 			GQRNode clonedNode = thisNode.clone();//haven't yet implemented Predicate#clone()
 			//TODO maybe we don't have to clone the predicates
 			
@@ -241,12 +239,8 @@ public class SourcePredicateJoin extends PredicateJoin {
 			{
 				JoinInView jvCloned = clonedNode.getInfobox().getJoinInViews().get(index++);
 				assert(jvOriginal.getSourceName().equals(jvCloned.getSourceName()));
-				List <AtomicRewriting> clonedRew = new ArrayList<AtomicRewriting>();
 
-				for(AtomicRewriting rOrg: jvOriginal.getRewritings())
-				{
-					clonedRew.add(rOrg);
-				}
+				List<AtomicRewriting> clonedRew = new ArrayList<>(jvOriginal.getRewritings());
 
 				jvCloned.setRewritings(clonedRew);
 			}

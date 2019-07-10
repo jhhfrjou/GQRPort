@@ -47,7 +47,7 @@ public class CheckSolutionEquivalence extends TestCase {
 			System.out.println("********view "+viewNo+" *******");
 
 
-			GQR g = new GQR(data.getAbsolutePath()+"/"+"view_"+10+".txt",data.getAbsolutePath()+"/"+"view_"+1+".txt");
+			GQR g = new GQR(data.getAbsolutePath()+"/"+"view_"+10+".txt",data.getAbsolutePath()+"/"+"view_"+1+".txt", viewNo);
 //			GQR g = new GQR(new File(data.getAbsolutePath()+"/"+"queryHD_"+countQ+".txt"),new File(data.getAbsolutePath()+"/"+"view_"+viewNo+".txt"),viewNo);
 
 			List<CompRewriting> res = new ArrayList<CompRewriting>();

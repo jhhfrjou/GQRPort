@@ -1,18 +1,18 @@
 package gqr;
 
+import com.mchange.v2.sql.filter.SynchronizedFilterResultSet;
+
 public class GQRNode {
 
-	private uk.ac.soton.ecs.RelationalModel.Variable variable;
+	private Variable variable;
 	private Infobox infobox;
 	private boolean isExistential;
 	private String queryVar = null;
 
-	public GQRNode(uk.ac.soton.ecs.RelationalModel.Variable v, Infobox box) {
+	public GQRNode(Variable v, Infobox box) {
 		variable = v;
 		infobox = box;
-		if(v instanceof Variable)
-			this.setExistential(((Variable) v).isExistential());
-		else this.setExistential(false);
+		setExistential(v.isExistential());
 	}
 	
 
@@ -24,7 +24,7 @@ public class GQRNode {
 		this.isExistential = isExistential;
 	}
 
-	public uk.ac.soton.ecs.RelationalModel.Variable getVariable() {
+	public Variable getVariable() {
 		return variable;
 	}
 

@@ -11,6 +11,7 @@ public class Query extends ConjunctiveQuery {
     Atom headAtom;
     private List<Variable> headVariables;
     private String name;
+    List<Variable> existentialVariables;
 
     public Query() {
         super();
@@ -21,6 +22,7 @@ public class Query extends ConjunctiveQuery {
         super();
         Query.convertTerms(cq);
         headVariables = new ArrayList<>();
+        existentialVariables = new ArrayList<>();
         setHead(cq.getHead());
         setBody(cq.getBody());
     }
@@ -39,9 +41,6 @@ public class Query extends ConjunctiveQuery {
             for (int i = 0; i < atom.getTerms().size(); i++) {
                 if(atom.getTerm(i) instanceof uk.ac.soton.ecs.RelationalModel.Variable) {
                     atom.getTerms().set(i, new Variable(atom.getTerm(i).getName()));
-                    if(cq.getHeadTerms().contains(atom.getTerm(i))) {
-
-                    }
                 }
             }
         }
@@ -50,14 +49,15 @@ public class Query extends ConjunctiveQuery {
 
     @Override
     public void setHead(HashSet<Atom> atoms) {
-        for(Term t : getHeadTermsList()) {
-            if(t instanceof Variable) {
-                headVariables.add((Variable) t);
-            }
-        }
         for (Atom atom : atoms) {
             headAtom = atom;
             name = headAtom.getPredicate().getName();
+            for(Term t : atom.getTerms()) {
+                if(t instanceof Variable) {
+                    headVariables.add((Variable) t);
+                    ((Variable) t).setPositionInHead(headVariables.size()-1);
+                }
+            }
             break;
         }
         super.setHead(atoms);
@@ -67,10 +67,11 @@ public class Query extends ConjunctiveQuery {
     public void setBody(HashSet<Atom> atoms) {
         for(Atom atom : atoms) {
             for (Term term : atom.getTerms()) {
-                if(headVariables.indexOf(term) != -1) {
-                    ((Variable) term).setPositionInHead(headVariables.indexOf(term));
-                } else {
+                if(headVariables.indexOf(term) == -1) {
                     ((Variable) term).setIsExistential();
+                    existentialVariables.add((Variable) term);
+                } else {
+                    ((Variable) term).setPositionInHead(headVariables.indexOf(term));
                 }
             }
         }
@@ -92,8 +93,8 @@ public class Query extends ConjunctiveQuery {
             qpj.setSerialNumber(k++);
             int j = 1;
             for (Term term : p.getTerms()) {//tale all the variables of the query PJ
-                assert (term instanceof uk.ac.soton.ecs.RelationalModel.Variable); //at this version all of predicate's "elements" (i.e., arguments) are variables
-                uk.ac.soton.ecs.RelationalModel.Variable v = (uk.ac.soton.ecs.RelationalModel.Variable) term;
+                assert (term instanceof Variable); //at this version all of predicate's "elements" (i.e., arguments) are variables
+                Variable v = (Variable) term;
                 Infobox queryVarBox = new Infobox();
                 JoinInView joiv = new JoinInView(headAtom.getPredicate().getName());
                 for (Atom otherpred : this.getBody()) //get the predicates once again
@@ -124,9 +125,7 @@ public class Query extends ConjunctiveQuery {
     public Set<PredicateJoin> constructAndReturnPJs() {
 
         Set<PredicateJoin> res = new HashSet<PredicateJoin>();
-        List<Atom> atoms = new ArrayList<>(getHead());
-        atoms.addAll(getBody());
-        for (Atom a : atoms) {
+        for (Atom a : getBody()) {
             uk.ac.soton.ecs.RelationalModel.Predicate p = a.getPredicate();
 //			System.out.println("--> predicate "+p);
             PredicateJoin qpj = new PredicateJoin(new Predicate(p));//construct a cpj (in fact a pj)
@@ -143,7 +142,7 @@ public class Query extends ConjunctiveQuery {
                 Infobox queryVarBox = new Infobox();
                 JoinInView joiv = new JoinInView(this.name);
 
-                Variable v = new Variable(el.getName());
+                Variable v = (Variable) el;
 
                 if (v.getPositionInHead() != -1) {
                     head_variables.add("" + v.getPositionInHead());
@@ -172,7 +171,6 @@ public class Query extends ConjunctiveQuery {
                 joiv.addSourceHeadPosition(v.getPositionInHead());
                 rw.addRefToJoiv(joiv);
                 queryVarBox.addJoinInView(joiv);
-
                 GQRNode nv = new GQRNode(v, queryVarBox);
                 qpj.addNode(nv, j++);
 
@@ -424,7 +422,6 @@ public class Query extends ConjunctiveQuery {
         Map <SourcePredicateJoin,List<SourcePredicateJoin>> sourcePJs = new HashMap<>();
         Map <SourcePredicateJoin,List<SourcePredicateJoin>> indexSourcePJs = new HashMap<>();
         for(Query source :  views) {
-            System.out.println("view: "+source);
             Map <SourcePredicateJoin,Integer> occurences_of_the_same_pj = new HashMap<SourcePredicateJoin, Integer>();
             for (PredicateJoin pj : source.constructAndReturnPJs()) { //constructs all the pjs with their infoboxes only updated for this source
                 SourcePredicateJoin spj = new SourcePredicateJoin(pj);

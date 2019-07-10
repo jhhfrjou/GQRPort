@@ -49,16 +49,6 @@ public class PowerSet implements Iterator
     this(c.toArray());
   }
 
-  public PowerSet(Vector v)
-  {
-    this(v.toArray());
-  }
-
-  public PowerSet(ArrayList a)
-  {
-    this(a.toArray());
-  }
-
   /**
      * Returns the next subset in the PowerSet.
      *
