@@ -1,59 +1,35 @@
 package gqr;
 
 import gqr.Join.joinTypeInQuery;
-import gr.forth.ics.aggregator.Aggregate;
 import gr.forth.ics.aggregator.Aggregator;
 import gr.forth.ics.aggregator.DataTypes;
 import gr.forth.ics.aggregator.Database;
 import gr.forth.ics.aggregator.DbFactories;
-import gr.forth.ics.aggregator.Filters;
-import gr.forth.ics.aggregator.Orders;
 import gr.forth.ics.aggregator.Record;
-import gr.forth.ics.aggregator.Records;
 import gr.forth.ics.aggregator.Schema;
-import gr.forth.ics.aggregator.Timestamps;
-import gr.forth.ics.aggregator.diagram.Diagram;
-import gr.forth.ics.aggregator.diagram.DiagramFactory;
-import gr.forth.ics.aggregator.diagram.gnuplot.GnuPlotContext;
-import gr.forth.ics.aggregator.diagram.gnuplot.GnuPlotWriter;
-import gr.forth.ics.aggregator.diagram.jfreechart.Chart;
-import gr.forth.ics.aggregator.diagram.jfreechart.ChartFactory;
 
 import isi.mediator.SourceQuery;
 
-import java.awt.Container;
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.StringReader;
+import java.io.*;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.ListIterator;
-import java.util.Map;
-import java.util.NoSuchElementException;
-import java.util.Random;
-import java.util.Set;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Vector;
 
-import org.jfree.chart.ChartPanel;
-
-import antlr.RecognitionException;
-import antlr.TokenStreamException;
-import datalog.DatalogParser;
-import datalog.DatalogScanner;
+import uk.ac.ox.cs.chaseBench.model.Constant;
+import uk.ac.ox.cs.chaseBench.model.Domain;
+import uk.ac.ox.cs.chaseBench.model.Rule;
+import uk.ac.ox.cs.chaseBench.parser.CommonParser;
+import uk.ac.ox.cs.chaseBench.processors.InputCollector;
+import uk.ac.soton.ecs.RelationalModel.Atom;
+import uk.ac.soton.ecs.RelationalModel.ConjunctiveQuery;
+import uk.ac.soton.ecs.RelationalModel.DatabaseSchema;
+import uk.ac.soton.ecs.RelationalModel.parser.CBQueryConverter;
+import uk.ac.soton.ecs.RelationalModel.parser.CBSchemaConverter;
 
 public class GQR {
 
     //the user query to be reformulated
-    private DatalogQuery query;
+    private Query query;
     //time that should be excluded from the measurements (measuring assertions etc)
     long dontCountTime = 0;
 
@@ -66,6 +42,7 @@ public class GQR {
     private long cloningTime = 0;
     private long subSymbolsTime = 0;
     private long subDontCaresTime = 0;
+    private List<ConjunctiveQuery> views;
 
     //map that temporarily holds pairs of partial rewritings that are to be merged while combining their CPJs
     private List<Pair<AtomicRewriting, AtomicRewriting>> merges = new ArrayList<Pair<AtomicRewriting, AtomicRewriting>>();
@@ -101,8 +78,6 @@ public class GQR {
         int run = 0;
 
         //HPCC line below
-        File data = new File(System.getProperty("user.dir")+"/run_"+run+"/views_for_q_"+run);
-
 
 //		int viewNo=70;
         int viewNo = 0;
@@ -136,7 +111,7 @@ public class GQR {
             long st = System.currentTimeMillis();
 
 //						GQR g = new GQR(new File(System.getProperty("user.dir")+"/queryHD_"+run+".txt"),new File(System.getProperty("user.dir")+"/views_"+run+".txt"), viewNo);
-            GQR g = new GQR(new File(System.getProperty("user.dir")+"/run_"+run+"/query_"+run+".txt"),new File(System.getProperty("user.dir")+"/run_"+run+"/views_for_q_"+run+".txt"), viewNo);
+            GQR g = new GQR(System.getProperty("user.dir")+"/GQR/run_"+run+"/query_"+run+".txt",System.getProperty("user.dir")+"/GQR/run_"+run+"/views_for_q_"+run+".txt");
 
             int recorderViewNo = viewNo;
 //
@@ -164,12 +139,12 @@ public class GQR {
             } catch (NonAnswerableQueryException e) {
                 //					throw new RuntimeException(e);
                 long end = System.currentTimeMillis();
-                System.out.println("NA Case: "+recorderViewNo+ " Time:" + ((long)((end-st)-g.dontCountTime)));
+                System.out.println("NA Case: "+recorderViewNo+ " Time:" + ((end-st)-g.dontCountTime));
 
                 aggregator.record(
-                        new Record().add(Variables.Query, g.getQuery().getName()).
+                        new Record().add(Variables.Query, g.getQuery().headAtom.getPredicate().getName()).
                                 add(Variables.ViewNo, recorderViewNo).
-                                add(Variables.Time, (long)(((long)(end-st))-g.dontCountTime)).
+                                add(Variables.Time, end-st -g.dontCountTime).
                                 add(Variables.RewNo, 0).
                                 add(Variables.ExcludedTime,g.dontCountTime)
                 );
@@ -184,9 +159,9 @@ public class GQR {
             long end = System.currentTimeMillis();
 
             aggregator.record(
-                    new Record().add(Variables.Query, g.getQuery().getName()).
+                    new Record().add(Variables.Query, g.getQuery().headAtom.getPredicate().getName()).
                             add(Variables.ViewNo, recorderViewNo).
-                            add(Variables.Time, (long)(((long)(end-st))-g.dontCountTime)).
+                            add(Variables.Time, end-st -g.dontCountTime).
                             add(Variables.RewNo, g.reNo).
                             add(Variables.ExcludedTime,g.dontCountTime)
             );
@@ -197,63 +172,40 @@ public class GQR {
                 throw new RuntimeException(e1);
             }
 
-            System.out.println("Case: "+recorderViewNo+" Time:" + ((long)((end-st)-g.dontCountTime))+" rewNo:"+g.reNo);
+            System.out.println("Case: "+recorderViewNo+" Time:" + ((end-st)-g.dontCountTime) +" rewNo:"+g.reNo);
         }
 
 
 
     }
 
-    public DatalogQuery getQuery() {
+    public Query getQuery() {
         return query;
     }
     /**
      * Initializes a GQR object. Parses numberofsources of the views (source definitions) and the query
      * @param gueryFile the file containing the query
      * @param viewsFile the file containing the sources
-     * @param numberofsources how many views to use from the view file
      */
-    public GQR(File gueryFile, File viewsFile,int numberofsources)
+    public GQR(String gueryFile, String viewsFile)
     {
 
         long st = System.currentTimeMillis();
-        this.readViews(viewsFile,numberofsources);
-        dontCountTime += ((long)(System.currentTimeMillis() - st));
-        DatalogQuery query = this.readQuery(gueryFile);
-        this.query = query;
+        try {
+            List<Query> views = getQueriesFromFile(viewsFile);
+            Pair <Map <SourcePredicateJoin,List<SourcePredicateJoin>>,Map <SourcePredicateJoin,List<SourcePredicateJoin>>> pjs = Query.createSourcePredicateJoins(views);
+            sourcePJs = pjs.getA();
+            indexSourcePJs = pjs.getB();
+            dontCountTime += System.currentTimeMillis() - st;
+            query = new Query(getQueriesFromFile(gueryFile).get(0));
+            System.out.println("Files in");
+            query.computeQueryPJs();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
         System.out.println("query: ");
         System.out.println("	"+query);
 
-    }
-
-    private DatalogQuery readQuery(File file) {
-        GQRQueryParser qparser = new GQRQueryParser(file,0);
-        DatalogQuery query = qparser.parseNextQuery();
-        query.computeQueryPJs();
-        query.countRepeatedPredicates();
-        return query;
-    }
-
-
-    /**
-     * Parses the views. Constructs sourcePjs map, whose entries maintain multiple instances of each PJ,
-     * for all the repeated times occurring in the sources.
-     * Also creates the indexSourcePJs having for all potential query PJs, all th distinct source PJs
-     * these query PJs could map onto (i.e., the values of the map are pjs which are keys in
-     * sourcePJs).
-     * @param file a File object for a text file containing one view query per line
-     * @param numberofsources specifies up to how many lines (i.e. views) from the file will be read
-     */
-    private void readViews(File file,int numberofsources) {
-        GQRSourceParser sparser = new GQRSourceParser(file,numberofsources);
-        sparser.parseSources();
-        //		sparser.draw(); //creating a graph to visualize the different pjs and sourceboxes -- didn't prove that useful for more than a trivial number of sources
-        sourcePJs = sparser.getSourcePJs();
-        long st = System.currentTimeMillis();
-        assert(assertIDs(sourcePJs));
-        dontCountTime += ((long)(System.currentTimeMillis() - st));
-        sparser.indexSourcePJs();
-        indexSourcePJs = sparser.getIndexSourcePJs();
     }
 
 
@@ -265,29 +217,95 @@ public class GQR {
         return true;
     }
 
+
+
+    public List<Query> getQueriesFromFile(String resourceName) throws Exception {
+        Set<Rule> cbRules = new LinkedHashSet<>();
+        List<Query> queries = new ArrayList<>();
+        InputStream resourceStream = new FileInputStream(resourceName);
+        Reader input = new InputStreamReader(resourceStream);
+        StringBuffer output = new StringBuffer();
+        char[] buffer = new char[4096];
+        int read;
+        while ((read = input.read(buffer)) != -1)
+            output.append(buffer, 0, read);
+        InputCollector inputCollector = new InputCollector(null, cbRules, null);
+        CommonParser parser = new CommonParser(new StringReader(output.toString()));
+        parser.parse(inputCollector);
+        input.close();
+        uk.ac.ox.cs.chaseBench.model.DatabaseSchema dbSchema;
+        for ( Rule rule: cbRules) {
+            dbSchema = new uk.ac.ox.cs.chaseBench.model.DatabaseSchema();
+            for(uk.ac.ox.cs.chaseBench.model.Atom atom : rule.getBodyAtoms()) {
+                if (!dbSchema.getPredicates().contains(atom.getPredicate())) {
+                    String[] colName = new String[atom.getNumberOfArguments()];
+                    Domain[] doms = new Domain[atom.getNumberOfArguments()];
+                    for (int i = 0; i < atom.getNumberOfArguments(); i++) {
+                        uk.ac.ox.cs.chaseBench.model.Term temp = atom.getArgument(i);
+                        colName[i] = temp.toString();
+                        if (temp instanceof uk.ac.ox.cs.chaseBench.model.Constant)
+                            doms[i] = ((Constant) temp).getDomain();
+                        else
+                            doms[i] = Domain.INTEGER;
+                    }
+                    dbSchema.addPredicateSchema(atom.getPredicate(), false, colName, doms);
+                }
+            }
+            for(uk.ac.ox.cs.chaseBench.model.Atom atom : rule.getHeadAtoms()) {
+                String[] colName = new String[atom.getNumberOfArguments()];
+                Domain[] doms = new Domain[atom.getNumberOfArguments()];
+                for(int i = 0; i < atom.getNumberOfArguments(); i++) {
+                    uk.ac.ox.cs.chaseBench.model.Term temp = atom.getArgument(i);
+                    colName[i] = temp.toString();
+                    doms[i] = Domain.INTEGER;
+                }
+                dbSchema.addPredicateSchema(atom.getPredicate(),true,colName,doms);
+            }
+
+
+            CBSchemaConverter schemaConverter = new CBSchemaConverter();
+            uk.ac.soton.ecs.RelationalModel.DatabaseSchema[] rmSchema = schemaConverter.toRelationalModel(dbSchema);
+            CBQueryConverter queryConverter = new CBQueryConverter();
+            ConjunctiveQuery cQ = queryConverter.toRelationalModel(rule,dbSchema,combineSchemas(rmSchema));
+            queries.add(new Query(cQ));
+        }
+        return queries;
+    }
+
+    private static DatabaseSchema combineSchemas(DatabaseSchema[] schemas) {
+        if (schemas.length == 2) {
+            Set<uk.ac.soton.ecs.RelationalModel.Predicate> otherPredicates = schemas[1].getPredicates();
+            for(uk.ac.soton.ecs.RelationalModel.Predicate otherPredicate : otherPredicates) {
+                schemas[0].add(otherPredicate);
+            }
+            return schemas[0];
+        }
+        return null;
+    }
+
     /**
      * Input: A query Q on the mediation schema
      * Output: A list of re-writings for the query
      * @return a list of conjunctive rewritings (using only source/view relations), whose union is a maximally-contained rewriting of the query
      * @throws NonAnswerableQueryException if some part ofthe query cannot covered (or answered) by any source/view
      */
-    public final List<CompRewriting> reformulate(DatalogQuery query) throws NonAnswerableQueryException {
+    public final List<CompRewriting> reformulate(Query query) throws NonAnswerableQueryException {
 
         Set<CPJCoverSet> currentCPJSets = new HashSet<CPJCoverSet>(); //(sets of) partial coverings of the query
         Set<CompositePredicateJoin> resultCPJs = new HashSet<CompositePredicateJoin>(); //complete coverings
 
-        Set<PredicateJoin> guery_pjs = query.getQPJs();
+        Set<PredicateJoin> guery_pjs = query.getQueryPJs();
         for(PredicateJoin pjq: guery_pjs)
         {
-            CPJCoverSet source_pjs = retrieveSourcePJSet((QueryPredicateJoin)pjq); //(a wrapper of) a set of CPJs for this predicate
+            CPJCoverSet source_pjs = retrieveSourcePJSet(pjq); //(a wrapper of) a set of CPJs for this predicate
             if(source_pjs.isEmpty())
                 throw new NonAnswerableQueryException();
             else
                 currentCPJSets.add(source_pjs);
         }
-
         while(!currentCPJSets.isEmpty()) //iterates over partial sets of query coverings
         {
+            System.out.println(currentCPJSets.size());
             Pair<CPJCoverSet,CPJCoverSet>  p = null;
             try{
                 p = select(currentCPJSets); //must always exist a pair until we reach a complete rewriting
@@ -295,15 +313,15 @@ public class GQR {
 
                 long st = System.currentTimeMillis();
                 assert(currentCPJSets.size() == 1);
-                dontCountTime += ((long)(System.currentTimeMillis() - st));
+                dontCountTime += System.currentTimeMillis() - st;
 
                 CPJCoverSet C = currentCPJSets.iterator().next();
                 if(C.getSerialNo() == 1 && query.sumOfPredicatesSerials() ==1)
                 {
                     st = System.currentTimeMillis();
-                    assert(query.numberOfPredicates() ==1);
+                    assert(query.getBody().size() ==1);
                     assert(AssertAllHaveSerialOne(C.getCPJs()));//Assertions only for debugging
-                    dontCountTime += ((long)(System.currentTimeMillis() - st));
+                    dontCountTime += System.currentTimeMillis() - st;
                     resultCPJs.addAll(C.getCPJs());
                     //I change collect rewritings and I am additionally passing the original query (casted as ISI query)
                     //in order to check that the rewritings collected are contained in the query
@@ -321,7 +339,6 @@ public class GQR {
             CPJCoverSet B = p.getB();
 
             //combine A,B remove them and put C in their place
-
             CPJCoverSet C = combineSets(A,B);
 
 
@@ -355,7 +372,7 @@ public class GQR {
         for(CompositePredicateJoin cpj: AltCpjs)
         {
             assert(cpj.getPjs().size() == 1);
-            assert(((SourcePredicateJoin)cpj.getPjs().iterator().next()).getQueryCPJ().getSerialNumber() == 1);
+            assert(cpj.getPjs().iterator().next().getQueryCPJ().getSerialNumber() == 1);
         }
         return true;
     }
@@ -371,10 +388,9 @@ public class GQR {
                 reNo++;
                 long st1 = System.currentTimeMillis();
                 CompRewriting nc = renameRewrAndReturnIt(cr);
-                postProcTime += ((long)(System.currentTimeMillis() - st1));
+                postProcTime += System.currentTimeMillis() - st1;
                 long st = System.currentTimeMillis();
-                assert(assertContainedInQuery(nc,inputQuery));
-                dontCountTime += ((long)(System.currentTimeMillis() - st));
+                dontCountTime += System.currentTimeMillis() - st;
                 res.add(nc);
                 //				renameRewritings(cr);
             }
@@ -402,7 +418,7 @@ public class GQR {
         //		System.out.println("rewr: "+nc);
         String exp = nc.getExpansion();
         //		System.out.println(exp);
-        SourceQuery expansion = Util.castQueryAsISISourceQuery(DatalogQuery.parseQueryIntoDatalog(exp));
+        SourceQuery expansion = Util.castQueryAsISISourceQuery(query);
         if(expansion.isContained(inputQuery))
             return true;
         else{
@@ -421,7 +437,7 @@ public class GQR {
 
         long st1 = System.currentTimeMillis();
         newcr = enforceMergesAndEquates(newcr);
-        enforceEquatesandMergesTime  += ((long)(System.currentTimeMillis() - st1));
+        enforceEquatesandMergesTime  += System.currentTimeMillis() - st1;
         ////
         //PoolOfNames pl = new PoolOfNames();
         //
@@ -446,7 +462,7 @@ public class GQR {
 //					}
 //		}
 
-        restofPostProcTime   += ((long)(System.currentTimeMillis() - st2));
+        restofPostProcTime   += System.currentTimeMillis() - st2;
         //
         return newcr;
     }
@@ -492,7 +508,7 @@ public class GQR {
             //System.out.println(cr.toString());
         }
 
-        enforceMergesTime   += ((long)(System.currentTimeMillis() - st1));
+        enforceMergesTime   += System.currentTimeMillis() - st1;
 
         CompRewriting newr = cr;//null;
 
@@ -503,69 +519,11 @@ public class GQR {
         } catch (CloneNotSupportedException e1) {
             throw new RuntimeException(e1);
         }
-        cloningTime    += ((long)(System.currentTimeMillis() - st3));
+        cloningTime    += System.currentTimeMillis() - st3;
 //		boolean thisIsANewRewriting = true;
 
         long st2 = System.currentTimeMillis();
 
-//		ListIterator<AtomicRewriting> atrewr_iterator = newr.getAtomicRewritings().listIterator(); // iterator will help us substitute an element of the iterated list
-//		while(atrewr_iterator.hasNext()) //get all atomic rewritings
-//		{  
-//			AtomicRewriting at = atrewr_iterator.next();
-//			at.clonedForVariableRenamingDueToEquations = false; //each atomic rewriting should be cloned just once for enforcing a single's comprewritings equations
-//			//by default it's not cloned
-//			
-//			List<String> variablesinAtomicRewr = at.getSourceHeads().iterator().next().getSourceHeadVars();
-//			
-//			int indexOfVarInAt = 0;
-//			
-//			for(String nextvar: variablesinAtomicRewr)// for all atomicrewriting's variables
-//			{ 	
-//
-//				//get all equivalence sets and check whether atomicrewriting's var is in any set 
-//				for(Entry<String,Set<String>> e: newr.getEquates().entrySet())
-//				{
-//
-//					Set<String> vars = e.getValue();
-//					String var2 = e.getKey();
-//
-//
-//					boolean foundNextvarInAnEquivalenceSet = false;
-//					//get all variables of this atomic rewriting
-//
-//					if(vars.contains(nextvar)) //if we find it we must clone the rewriting and substitute nextvar with var2
-//					{
-//						
-//						//clone if not already cloned and substitute
-//						if(!at.clonedForVariableRenamingDueToEquations)
-//						{
-//							foundNextvarInAnEquivalenceSet = true;
-//							at.clonedForVariableRenamingDueToEquations = true;
-//							//TODO merge the following three actions
-//							AtomicRewriting clonedAtRew = at.cloneDummy();
-//							List<String> atomicRewritingsVars = clonedAtRew.getSourceHeads().iterator().next().getSourceHeadVars();
-//							atomicRewritingsVars.set(indexOfVarInAt, var2);
-////							
-//							at = clonedAtRew;
-//							atrewr_iterator.set(at);
-//						}
-//						else //already cloned just substitute
-//						{
-//							List<String> atomicRewritingsVars = at.getSourceHeads().iterator().next().getSourceHeadVars();
-//							atomicRewritingsVars.set(indexOfVarInAt, var2);
-//						}
-//						
-//						break;//assuming every variable of the atomic rewriting exists in only one equivalence set
-//					}
-//				}
-//				
-//				indexOfVarInAt++;
-//				
-////				if(foundNextvarInAnEquivalenceSet)
-////					break;
-//			}
-//
-//		}
         for(Entry<String,Set<String>> e: newr.getEquates().entrySet())
         {
             Set<String> vars = e.getValue();
@@ -574,7 +532,7 @@ public class GQR {
             substituteVarsbyOtherVar(newr, vars, var2);//, thisIsANewRewriting);
 //			thisIsANewRewriting = false;
         }
-        enforceEquatesTime   += ((long)(System.currentTimeMillis() - st2));
+        enforceEquatesTime   += System.currentTimeMillis() - st2;
 
         //		System.out.println("Affter merges and equates:");
         //		System.out.println(newr.toString());
@@ -615,40 +573,7 @@ public class GQR {
             if(at == null) //if this is null it must be because we already enforced the merges for this compRewriting so we went to the next statement and
             //removed the atomic rewriting involved in the merge
             {
-                //TODO all the following block is a hack. Verify why this works.
-                //				boolean in = false;
-                //				boolean allDontcares = true;
-                //				List<String> l = jv.getSourceHeads().iterator().next().getSourceHeadVars();
-                //				for(String var: l)
-                //				{
-                //					if(!var.startsWith("__"))
-                //						allDontcares = false;
-                //				}
-                //
-                //				if(allDontcares && !uninitialized)
-                //				{
-                //					for(AtomicRewriting at2: cr.getAtomicRewritings())
-                //					{
-                //						allDontcares = true;
-                //						l = at2.getSourceHeads().iterator().next().getSourceHeadVars();
-                //						for(String var: l)
-                //						{
-                //							if(!var.startsWith("__"))
-                //								allDontcares = false;
-                //						}
-                //
-                //						if(allDontcares)
-                //						{
-                //							jv = at2;
-                //							in = true;
-                //							break;
-                //						}
-                //					}
-                //				}
-                //
-                //				if(!in)
-                //				{
-                //System.out.println("RETURNED");
+
                 return;
                 //				}
             }
@@ -657,7 +582,7 @@ public class GQR {
 
             long st = System.currentTimeMillis();
             assert(at.getSourceHeads().size() == 1);
-            dontCountTime += ((long)(System.currentTimeMillis() - st));
+            dontCountTime += System.currentTimeMillis() - st;
 
             SourceHead s1 = at.getSourceHeads().iterator().next();
             //			if(s1.getSourceHeadVars().size() != 10)
@@ -689,7 +614,7 @@ public class GQR {
                         //						System.out.println("I'm in 3rd branch and putting "+varS1+" in the "+i+" place (it was:"+already_in+")");
                         st = System.currentTimeMillis();
                         assert(already_in.startsWith("DC"));
-                        dontCountTime += ((long)(System.currentTimeMillis() - st));
+                        dontCountTime += System.currentTimeMillis() - st;
                         newsh.setSourceHeadVar(i, varS1);
                         //						substituteVar1byVar2(cr, already_in, varS1);
                         //						cr.addEquate(varS1, newsh.getSourceHeadVars().get(i), null);
@@ -748,7 +673,7 @@ public class GQR {
             long st = System.currentTimeMillis();
             assert(at.getSourceHeads().size() == 1);
             assert(vars instanceof HashSet);
-            dontCountTime += ((long)(System.currentTimeMillis() - st));
+            dontCountTime += System.currentTimeMillis() - st;
 
             ListIterator<String> variablesinAtomicRewr = at.getSourceHeads().iterator().next().getSourceHeadVars().listIterator();
             List<String> newsourceheadvars = new ArrayList<String>();
@@ -796,7 +721,7 @@ public class GQR {
         {
             long st = System.currentTimeMillis();
             assert(at.getSourceHeads().size() == 1);
-            dontCountTime += ((long)(System.currentTimeMillis() - st));
+            dontCountTime += System.currentTimeMillis() - st;
 
             SourceHead s1 = at.getSourceHeads().iterator().next();
             ListIterator<String> l_it = s1.getSourceHeadVars().listIterator();
@@ -895,9 +820,9 @@ public class GQR {
                             // I still might drop it if next flag doesn't go true;
                             boolean once_found_in_jv2_preserves_join = false;
 
-                            for(JoinDescritpion jdOfSourceNode1: jv1.getJoinDescriptions())
+                            for(JoinDescription jdOfSourceNode1: jv1.getJoinDescriptions())
                             {
-                                if(jdOfSourceNode1.equals(new JoinDescritpion(j.node2.getA().getPredicate(), edgeNo2)))
+                                if(jdOfSourceNode1.equals(new JoinDescription(j.node2.getA().getPredicate(), edgeNo2)))
                                 {
                                     long st = System. currentTimeMillis();
                                     //									if(jdOfSourceNode1.getPredicate() != j.node2.getA().getPredicate())
@@ -912,7 +837,7 @@ public class GQR {
                                     //assert(jv2.getJoinDescriptions().contains(new JoinDescritpion(j.node1.getA().getPredicate(), edgeNo1)));
                                     assert(jv1.getRewritings().size() == 1);
                                     assert(jv2.getRewritings().size() == 1);
-                                    dontCountTime += ((long)(System.currentTimeMillis() - st));
+                                    dontCountTime += System.currentTimeMillis() - st;
                                     addMerge(jv1.getRewritings().iterator().next(),jv2.getRewritings().iterator().next());
 
                                     //since the rewriting for jv1 is going to be merged with some other rewritings
@@ -949,7 +874,7 @@ public class GQR {
                         assert(jv2.getRewritings().size() == 1);
                         //						System.out.println(b.getRewritings()+"\n\n"+jv2.getRewritings());
                         assert(containsExactlyOncePerCompRew(b.getRewritings(),jv2.getRewritings().iterator().next()));
-                        dontCountTime += ((long)(System.currentTimeMillis() - st));
+                        dontCountTime += System.currentTimeMillis() - st;
                     }
 
                     if(!same_view_found_in_jv2)
@@ -966,7 +891,7 @@ public class GQR {
             {
                 long st = System.currentTimeMillis();
                 assert(!sourceVarNode2.isExistential());
-                dontCountTime += ((long)(System.currentTimeMillis() - st));
+                dontCountTime += System.currentTimeMillis() - st;
                 //		repeat
                 //		for all pairs, get a pair sources (s1; s2) from infobox of va
                 //		and vb respectively
@@ -1036,7 +961,7 @@ public class GQR {
                         //							System.out.println(b.getRewritings()+"\n\n"+jv2.getRewritings());
                         assert(containsExactlyOncePerCompRew(b.getRewritings(),jv2.getRewritings().iterator().next()));
                         assert(sourceVarNode1.getQueryVar() == null || sourceVarNode1.getQueryVar().equals(sourceVarNode2.getQueryVar()));
-                        dontCountTime += ((long)(System.currentTimeMillis() - st));
+                        dontCountTime += System.currentTimeMillis() - st;
 
                         addEquate(jv1, jv1.getHeadPosition(), jv2, jv2.getHeadPosition(),sourceVarNode1.getQueryVar());
                         //						}
@@ -1175,7 +1100,7 @@ public class GQR {
         long st = System.currentTimeMillis();
         assert(jv1.getRewritings().size() ==1);
         assert(jv2.getRewritings().size() ==1);
-        dontCountTime += ((long)(System.currentTimeMillis() - st));
+        dontCountTime += System.currentTimeMillis() - st;
 
         AtomicRewriting at1 = (compRew.getAtomicRewritings().contains(jv1.getRewritings().iterator().next())?jv1.getRewritings().iterator().next():null);
         AtomicRewriting at2 = (compRew.getAtomicRewritings().contains(jv2.getRewritings().iterator().next())?jv2.getRewritings().iterator().next():null);
@@ -1189,7 +1114,7 @@ public class GQR {
         st = System.currentTimeMillis();
         assert(at1.getSourceHeads().size() == 1);
         assert(at2.getSourceHeads().size() == 1);
-        dontCountTime += ((long)(System.currentTimeMillis() - st));
+        dontCountTime += System.currentTimeMillis() - st;
 
         SourceHead s1 = at1.getSourceHeads().iterator().next();
         SourceHead s2 = at2.getSourceHeads().iterator().next();
@@ -1293,7 +1218,7 @@ public class GQR {
 
         st = System.currentTimeMillis();
         assert(s1.getSourceName().equals(s2.getSourceName()));
-        dontCountTime += ((long)(System.currentTimeMillis() - st));
+        dontCountTime += System.currentTimeMillis() - st;
         compRew.addMerge(jv1,jv2);
     }
 
@@ -1304,7 +1229,7 @@ public class GQR {
         {
             long st = System.currentTimeMillis();
             assert(at.getSourceHeads().size() == 1);
-            dontCountTime += ((long)(System.currentTimeMillis() - st));
+            dontCountTime += System.currentTimeMillis() - st;
 
             SourceHead s1 = at.getSourceHeads().iterator().next();
             ListIterator<String> l_it = s1.getSourceHeadVars().listIterator();
@@ -1324,7 +1249,7 @@ public class GQR {
         {
             long st = System.currentTimeMillis();
             assert(at.getSourceHeads().size() == 1);
-            dontCountTime += ((long)(System.currentTimeMillis() - st));
+            dontCountTime += System.currentTimeMillis() - st;
 
             SourceHead s1 = at.getSourceHeads().iterator().next();
             ListIterator<String> l_it = s1.getSourceHeadVars().listIterator();
@@ -1519,7 +1444,7 @@ public class GQR {
                         {
                             long st=System.currentTimeMillis();
                             assert(node1OfQ.getValue().getInfobox().getJoinInViews().size() == 1);
-                            dontCountTime += ((long)(System.currentTimeMillis() - st));
+                            dontCountTime += System.currentTimeMillis() - st;
 
                             //this is a dummy for - only one joininview will be retrieved
                             //describing the query joins of this variable
@@ -1543,30 +1468,30 @@ public class GQR {
 
                                 assert(joinsofnode1ofQ.getSourceName().equals(joinsofnode2ofQ.getSourceName()));
 
-                                dontCountTime += ((long)(System.currentTimeMillis() - st));
+                                dontCountTime += System.currentTimeMillis() - st;
 
                                 //that is the name of the query
 
                                 //all the joindescriptions that the query variable (covered by a source variable
                                 //attached in a source pj in cpj b) participates in.
-                                for(JoinDescritpion jd2 :joinsofnode2ofQ.getJoinDescriptions())
+                                for(JoinDescription jd2 :joinsofnode2ofQ.getJoinDescriptions())
                                 {
                                     //all the joindescriptions that the query variable (covered by a source variable
                                     //attached in a source pj in cpj a) participates in.
-                                    for(JoinDescritpion jd1: joinsofnode1ofQ.getJoinDescriptions())
+                                    for(JoinDescription jd1: joinsofnode1ofQ.getJoinDescriptions())
                                     {
                                         //TODO
                                         //maybe my intention here was to call equalsIgnoreRepeatedID I'm not sure -- however
                                         // q2.getPredicate() carries a repeatedID
-                                        if(jd1.equalsWithSamePred(new JoinDescritpion(q2.getPredicate(),node2OfQ.getKey()))
+                                        if(jd1.equalsWithSamePred(new JoinDescription(q2.getPredicate(),node2OfQ.getKey()))
                                                 &&
-                                                jd2.equalsWithSamePred(new JoinDescritpion(q1.getPredicate(),node1OfQ.getKey())))//second part of if might be redundant; TODO check this
+                                                jd2.equalsWithSamePred(new JoinDescription(q1.getPredicate(),node1OfQ.getKey())))//second part of if might be redundant; TODO check this
                                         {
                                             Join j = new Join(new Pair<SourcePredicateJoin,Integer>(spj1,node1OfQ.getKey()),new Pair<SourcePredicateJoin,Integer>(spj2,node2OfQ.getKey()));
                                             j.jt = node1OfQ.getValue().isExistential()?joinTypeInQuery.E:joinTypeInQuery.D;
                                             st=System.currentTimeMillis();
                                             assert(j.jt == (node2OfQ.getValue().isExistential()?joinTypeInQuery.E:joinTypeInQuery.D));
-                                            dontCountTime += ((long)(System.currentTimeMillis() - st));
+                                            dontCountTime += System.currentTimeMillis() - st;
                                             //j.setPredicate1(q1.getPredicate());
                                             //											//j.setPredicate2(q2.getPredicate());
                                             joins.add(j);
@@ -1601,11 +1526,11 @@ public class GQR {
 
         try{
             cpjCSet1 = it.next();
-            //			QueryPredicateJoin qpj1 = cpjCSet1.getCPJs().iterator().next().getPjs().iterator().next().getQueryCPJ();
+            //			PredicateJoin qpj1 = cpjCSet1.getCPJs().iterator().next().getPjs().iterator().next().getQueryCPJ();
             //			System.out.print("Combining cover set :"); for(CompositePredicateJoin cpj : cpjCSet1.getCPJs()){ System.out.print(cpj.getPjs()+" -- "); }
             //			System.out.println();
             cpjCSet2 = it.next();
-            //			QueryPredicateJoin qpj2 = cpjCSet2.getCPJs().iterator().next().getPjs().iterator().next().getQueryCPJ();
+            //			PredicateJoin qpj2 = cpjCSet2.getCPJs().iterator().next().getPjs().iterator().next().getQueryCPJ();
             ////			System.out.println("	with cover set for: "+qpj2.getPredicate()+qpj2.variablePatternStringSequence());
             //			System.out.print("	with cover set :"); for(CompositePredicateJoin cpj : cpjCSet2.getCPJs()){ System.out.print(cpj.getPjs()+" -- "); }
             //			System.out.println();
@@ -1617,7 +1542,7 @@ public class GQR {
         return new Pair<CPJCoverSet,CPJCoverSet>(cpjCSet1,cpjCSet2);
     }
 
-    private CPJCoverSet retrieveSourcePJSet(QueryPredicateJoin pjq) throws NonAnswerableQueryException {
+    private CPJCoverSet retrieveSourcePJSet(PredicateJoin pjq) throws NonAnswerableQueryException {
 
         //indexSourcePJs:
         //map to index all PJs that are keys of the next map, any pj A which maps to a key pj B of the next map
@@ -1641,7 +1566,7 @@ public class GQR {
 
                     long st = System.currentTimeMillis();
                     assert(assertRepeatedIds(l));
-                    dontCountTime += ((long)(System.currentTimeMillis() - st));
+                    dontCountTime += System.currentTimeMillis() - st;
                     //TODO also need to check this for below
                     for(Entry<Integer,GQRNode> queryNodeEntry: pjq.getGqrNodes().entrySet())
                     {
@@ -1677,20 +1602,20 @@ public class GQR {
                                 {
                                     st = System.currentTimeMillis();
                                     assert(false); //should nver come here
-                                    dontCountTime += ((long)(System.currentTimeMillis() - st));
+                                    dontCountTime += System.currentTimeMillis() - st;
 
                                     l_it.remove();//remove s_pj from l
                                 }
                             }
                             else if(!qNode.isExistential())
                             {
-                                sourceNode.addQueryVar(qNode.getVariable().name);
+                                sourceNode.addQueryVar(qNode.getVariable().getName());
                                 for(JoinInView jv: sourceNode.getInfobox().getJoinInViews())
                                 {
                                     st = System.currentTimeMillis();
                                     assert(jv.getRewritings().size() == 1);
                                     assert(jv.getRewritings().iterator().next().getSourceHeads().size() == 1);
-                                    dontCountTime += ((long)(System.currentTimeMillis() - st));
+                                    dontCountTime += System.currentTimeMillis() - st;
                                     //									if( jv.getRewritings().iterator().next().getSourceHeads().iterator().next().getSourceHeadVars().get(jv.getHeadPosition()).startsWith("_"))
                                     //									{
                                     //										System.out.println("I'm in "+queryNodeEntry.getKey() +" node of predicate "+s_pj+ " which has var"+sourceNode.getVariable());
@@ -1703,7 +1628,7 @@ public class GQR {
                                     //
                                     //									System.out.println("I'm equating "+jv.getRewritings().iterator().next().getSourceHeads().iterator().next().getSourceHeadVars().get(jv.getHeadPosition())+ " with "+qNode.getVariable().name);
                                     //									System.out.println("head pos "+jv.getHeadPosition());
-                                    s_pj.addEquate(qNode.getVariable().name, jv.getRewritings().iterator().next().getSourceHeads().iterator().next().getSourceHeadVars().get(jv.getHeadPosition()), qNode.getVariable().name);
+                                    s_pj.addEquate(qNode.getVariable().getName(), jv.getRewritings().iterator().next().getSourceHeads().iterator().next().getSourceHeadVars().get(jv.getHeadPosition()), qNode.getVariable().getName());
                                 }
                             }
 
@@ -1711,7 +1636,7 @@ public class GQR {
                     }
 
                     addPJQtoCPJCoverSets(l,pjq); //link the query PJ to these (alternatives) sourcePJs
-                    addAllSourcePJsAsCPJs(cset,l,this.query.getHeadString());
+                    addAllSourcePJsAsCPJs(cset,l,this.query.getHead().toString());
                 }
             }
         }
@@ -1722,12 +1647,12 @@ public class GQR {
         cset.setSerialNo(pjq.getSerialNumber());
 
         long st = System.currentTimeMillis();
-        if(this.getQuery().numberOfPredicates()==1)
+        if(getQuery().getBody().size()==1)
         {
             assert(this.getQuery().sumOfPredicatesSerials() == 1);
             assert(pjq.getSerialNumber()==1);
         }
-        dontCountTime += ((long)(System.currentTimeMillis() - st));
+        dontCountTime += System.currentTimeMillis() - st;
 
         return cset;
     }
@@ -1740,7 +1665,7 @@ public class GQR {
     }
 
     private void addPJQtoCPJCoverSets(List<SourcePredicateJoin> l,
-                                      QueryPredicateJoin pjq) {
+                                      PredicateJoin pjq) {
 
         for(SourcePredicateJoin spj: l)
             spj.setQueryPJ(pjq);
@@ -1754,7 +1679,7 @@ public class GQR {
             CompositePredicateJoin cpj = new CompositePredicateJoin();
             long st = System.currentTimeMillis();
             assert(spj.getPredicate().getRepeatedId() != -1);
-            dontCountTime += ((long)(System.currentTimeMillis() - st));
+            dontCountTime += System.currentTimeMillis() - st;
 
             cpj.add(spj);
             for(AtomicRewriting ar: spj.getRewritings())
@@ -1771,7 +1696,7 @@ public class GQR {
     }
 
     //	private void transformAndLinkQPJToCPJ(CompositePredicateJoin cpj,
-    //			QueryPredicateJoin pjq) {
+    //			PredicateJoin pjq) {
     //
     //		CompositePredicateJoin cpjq = new CompositePredicateJoin();
     //		cpjq.add(pjq);

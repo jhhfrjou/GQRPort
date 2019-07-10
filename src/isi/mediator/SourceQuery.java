@@ -85,13 +85,9 @@ public class SourceQuery extends Query{
 		ArrayList<String> q1HeadVars = head.getVars(); 
 		ArrayList<String> q2HeadVars = q.head.getVars();
 		//in joinRelation, the attributes q2HeadVars should have the values q1HeadVars
-		if(joinRelation.containsTuple(q2HeadVars, q1HeadVars)){
-			//contains frozen head of q1
-			return true;
-		}
-		
-		return false;
-	}
+        //contains frozen head of q1
+        return joinRelation.containsTuple(q2HeadVars, q1HeadVars);
+    }
 	
 	private Database createFrozenBody(){
 				
@@ -109,9 +105,7 @@ public class SourceQuery extends Query{
 	
 	@Override
 	public String toString(){
-		String s = super.toString() + "\n";
-		//s+= binding;
-		return s;
+		return super.toString() + "\n";
 	}
 	
 

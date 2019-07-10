@@ -1,34 +1,34 @@
 package gqr;
 
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Vector;
-import java.util.Map.Entry;
 
 public class SourcePredicateJoin extends PredicateJoin {
-	private QueryPredicateJoin queryCPJ;
+	private PredicateJoin queryCPJ;
 	private List<Pair<String,Pair<String,String>>> equates = new ArrayList<Pair<String,Pair<String,String>>>();	
 
 	@Override
 	public int hashCode() {
-		String hash = getPredicate().name;
+		String hash = getPredicate().getName();
 		for(int i=1; i<=getGqrNodes().size(); i++)
 		{
 			hash+=String.valueOf(i);
-			hash+=((GQRNode)getGqrNodes().get(i)).isExistential()?"E":"D";
+			hash+=(getGqrNodes().get(i)).isExistential()?"E":"D";
 		}
 		return hash.hashCode();
 	}
 	@Override
 	public String toString() {
-		String hash = getPredicate().name;
+		String hash = getPredicate().getName();
 		for(int i=1; i<=getGqrNodes().size(); i++)
 		{
 			hash+=String.valueOf(i);
-			hash+=((GQRNode)getGqrNodes().get(i)).isExistential()?"E":"D";
+			hash+= getGqrNodes().get(i).isExistential()?"E":"D";
 		}
 		return hash;
 	}
@@ -260,11 +260,11 @@ public class SourcePredicateJoin extends PredicateJoin {
 	}
 	
 	
-	public void setQueryPJ(QueryPredicateJoin pjq) {
+	public void setQueryPJ(PredicateJoin pjq) {
 		queryCPJ = pjq;
 	}
 
-	public QueryPredicateJoin getQueryCPJ() {
+	public PredicateJoin getQueryCPJ() {
 		return queryCPJ;
 	}
 

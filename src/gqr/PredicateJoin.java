@@ -15,8 +15,8 @@ public class PredicateJoin {
 
 	public PredicateJoin(final Predicate p) {
 		this.pred = p;
-		gqrNodes = new HashMap<Integer,GQRNode>();
-		atomicRewritings = new ArrayList<AtomicRewriting>();
+		gqrNodes = new HashMap<>();
+		atomicRewritings = new ArrayList<>();
 	}
 
 	public Predicate getPredicate() {
@@ -61,7 +61,7 @@ public class PredicateJoin {
 		for(int i=1; i<=getGqrNodes().size(); i++)
 		{
 			hash+=String.valueOf(i);
-			hash+=((GQRNode)getGqrNodes().get(i)).isExistential()?"E":"D";
+			hash+= getGqrNodes().get(i).isExistential()?"E":"D";
 		}
 		return hash;
 	}

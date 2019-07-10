@@ -9,7 +9,7 @@ public class SourceHead {
 
 	private List<String> sourceHeadVars;
 
-	private DatalogQuery query;
+	private Query query;
 
 	public SourceHead(String sourceName) {
 		sourceHeadVars = new ArrayList<String>();
@@ -53,7 +53,7 @@ public class SourceHead {
 	@Override
 	protected SourceHead clone() throws CloneNotSupportedException {
 		SourceHead sh = new SourceHead(this.sourceName);
-		sh.setQuery(this.getQuery().clone());
+		sh.setQuery(getQuery().clone());
 		List<String> vars = new ArrayList<String>();
 		for(String t: this.getSourceHeadVars())
 		{
@@ -84,7 +84,7 @@ public class SourceHead {
 //			throw new RuntimeException(e);
 //		}
 		List<String> vars = new ArrayList<String>();
-		for(String t: this.getSourceHeadVars())
+		for(String t: getSourceHeadVars())
 		{
 			vars.add(t);
 		}
@@ -96,23 +96,24 @@ public class SourceHead {
 			getSourceHeadVars().set(i, varS1);
 	}
 
-	public void setQuery(DatalogQuery datalogQuery) {
-		query = datalogQuery;
+	public void setQuery(Query nQuery) {
+		query = nQuery;
 	}
 
-	public DatalogQuery getQuery() {
+	public Query getQuery() {
 		return query;
 	}
 
 	SourceHead cloneAndSetSourceHeadVars(List<String> newsourceheadvars) {
 		SourceHead sh = new SourceHead(this.sourceName);
 		try {
-			sh.setQuery(this.getQuery().clone());
+			sh.setQuery(getQuery().clone());
 		} catch (CloneNotSupportedException e) {
 			throw new RuntimeException(e);
 		}
 		sh.setSourceHeadVars(newsourceheadvars);
 		return sh;
 	}
+
 	
 }

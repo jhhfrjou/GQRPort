@@ -58,8 +58,8 @@ public class FolderIterator {
 			{
 				return fo;
 			}
-			
-			String internalNames[] = fo.list();
+
+            String[] internalNames = fo.list();
 
 			for(int i=0; i<internalNames.length; i++)
 			{

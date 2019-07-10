@@ -10,7 +10,7 @@ import java.util.Map.Entry;
  */
 public class Join {
 
-	public enum joinTypeInQuery {E,D}; // E for existential , D for distinguished
+	public enum joinTypeInQuery {E,D} // E for existential , D for distinguished
 	public Pair<SourcePredicateJoin, Integer> node1; 
 	public Pair<SourcePredicateJoin, Integer> node2;
 	

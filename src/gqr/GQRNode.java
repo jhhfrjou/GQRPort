@@ -2,15 +2,17 @@ package gqr;
 
 public class GQRNode {
 
-	private Variable variable;
+	private uk.ac.soton.ecs.RelationalModel.Variable variable;
 	private Infobox infobox;
 	private boolean isExistential;
 	private String queryVar = null;
 
-	public GQRNode(Variable v, Infobox box) {
+	public GQRNode(uk.ac.soton.ecs.RelationalModel.Variable v, Infobox box) {
 		variable = v;
 		infobox = box;
-		this.setExistential(v.isExistential());
+		if(v instanceof Variable)
+			this.setExistential(((Variable) v).isExistential());
+		else this.setExistential(false);
 	}
 	
 
@@ -22,7 +24,7 @@ public class GQRNode {
 		this.isExistential = isExistential;
 	}
 
-	public Variable getVariable() {
+	public uk.ac.soton.ecs.RelationalModel.Variable getVariable() {
 		return variable;
 	}
 
@@ -53,7 +55,7 @@ public class GQRNode {
 	
 	@Override
 	protected GQRNode clone() throws CloneNotSupportedException {
-		return new GQRNode(this.getVariable().clone(),this.getInfobox().clone());
+		return new GQRNode(((Variable) getVariable()).clone(),this.getInfobox().clone());
 	}
 	
 	@Override

@@ -21,7 +21,7 @@ public class Infobox{
 	
 	@Override
 	public String toString() {
-		String ret = new String();
+		String ret = "";
 		for(JoinInView jv:joinInViews)
 		{
 			ret  += jv.toString()+"\n";

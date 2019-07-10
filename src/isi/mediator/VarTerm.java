@@ -23,9 +23,7 @@ public class VarTerm extends Term{
 	public boolean equals(Term t){
 		if(!(t instanceof VarTerm))
 			return false;
-		if(var.equals(t.var))
-			return true;
-		else return false;
+        return var.equals(t.var);
 	}
 	
 	@Override

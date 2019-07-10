@@ -23,7 +23,7 @@ public Tuple clone()
   {
     ArrayList objs = new ArrayList();
     for (int i=0; i<values.size(); i++)
-      objs.add(new String(values.get(i).toString())); 
+      objs.add(values.get(i).toString());
     return new Tuple(objs);  
   }
 
@@ -142,7 +142,7 @@ public Tuple clone()
     
     // returns true if the 2 tuples are unique along a set of attributes
     // whose positions are described in pos[]
-    public boolean distinct(Tuple t, int pos[]){
+    public boolean distinct(Tuple t, int[] pos){
 	for(int i=0; i<pos.length; i++){
 	    if(getValue(pos[i])!=null){
 		if(!getValue(pos[i]).

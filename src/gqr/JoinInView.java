@@ -1,9 +1,7 @@
 package gqr;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 /**
  * 
@@ -14,7 +12,7 @@ import java.util.Map;
 public class JoinInView {
 
 	private String sourceName;
-	private List<JoinDescritpion> joinDescriptions;
+	private List<JoinDescription> joinDescriptions;
 	private List<AtomicRewriting> atomicRewritings;
 
 	private int headPosition = -1;
@@ -30,7 +28,7 @@ public class JoinInView {
 	public JoinInView(String name) {
 		this.sourceName = name;
 		atomicRewritings = new ArrayList<AtomicRewriting>();
-		joinDescriptions = new ArrayList<JoinDescritpion>();
+		joinDescriptions = new ArrayList<JoinDescription>();
 	}
 
 	public String getSourceName() {
@@ -41,16 +39,16 @@ public class JoinInView {
 		this.sourceName = sourceName;
 	}
 
-	public List<JoinDescritpion> getJoinDescriptions() {
+	public List<JoinDescription> getJoinDescriptions() {
 		return joinDescriptions;
 	}
 
-	public void setJoinDescriptions(List<JoinDescritpion> joinDescriptions) {
+	public void setJoinDescriptions(List<JoinDescription> joinDescriptions) {
 		this.joinDescriptions = joinDescriptions;
 	}
 
-	public void addJoinDescription(JoinDescritpion joinDescritpion) {
-		joinDescriptions.add(joinDescritpion);	
+	public void addJoinDescription(JoinDescription joinDescription) {
+		joinDescriptions.add(joinDescription);
 	}
 	
 	public void addRewriting(AtomicRewriting rw) {
@@ -65,8 +63,8 @@ public class JoinInView {
 		}catch (UnitializedHeadPositionException e) {
 			jv.headPosition = -1;
 		}
-		List<JoinDescritpion> joinDs = new ArrayList<JoinDescritpion>();
-		for(JoinDescritpion jd: this.getJoinDescriptions())
+		List<JoinDescription> joinDs = new ArrayList<JoinDescription>();
+		for(JoinDescription jd: this.getJoinDescriptions())
 		{
 			joinDs.add(jd.clone());
 		}
@@ -84,12 +82,12 @@ public class JoinInView {
 	}
 
 	public boolean containsQueryDescriptions(
-			List<JoinDescritpion> joinDesc) {
+			List<JoinDescription> joinDesc) {
 		
-		for(JoinDescritpion query_jd: joinDesc)
+		for(JoinDescription query_jd: joinDesc)
 		{
 			boolean found = false;
-			for(JoinDescritpion this_jds: joinDescriptions)
+			for(JoinDescription this_jds: joinDescriptions)
 			{
 				if(this_jds.equalsIgnoreRepeatedID(query_jd))
 				found = true;

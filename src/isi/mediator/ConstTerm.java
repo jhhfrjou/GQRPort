@@ -65,9 +65,7 @@ public class ConstTerm extends Term{
 		//System.out.println("Equal term : " + this + " and " + t);
 		if(!(t instanceof ConstTerm))
 			return false;
-		if(val.equals(((ConstTerm)t).val))
-				return true;
-		else return false;
+        return val.equals(((ConstTerm) t).val);
 	}
 	
 	public boolean needsBinding(boolean b){

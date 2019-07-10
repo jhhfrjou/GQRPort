@@ -1,12 +1,13 @@
 package gqr;
 
+import uk.ac.soton.ecs.RelationalModel.DataType;
 
 /**
  * This class extends PredicateArgument and represents a variable of a Datalog
  * query.
  */
 
-public class Variable extends PredicateArgument {
+public class Variable extends uk.ac.soton.ecs.RelationalModel.Variable {
 	
 	private boolean isExistential = false;
 	private int positionInHead;
@@ -18,16 +19,16 @@ public class Variable extends PredicateArgument {
 	 *            
 	 */
 	public Variable(String name) {
-		super(name);
+		super(name, DataType.INTEGER);
 	}
-	
+
 	public boolean isExistential() {
 		return isExistential;
 	}
 
 	@Override
 	public boolean equals(Object elem) {
-		return ((Variable)(elem)).name.equals(this.name);
+		return ((Variable)(elem)).getName().equals(this.getName());
 	}
 
 	public void setIsExistential() {
@@ -44,7 +45,7 @@ public class Variable extends PredicateArgument {
 	
 	@Override
 	protected Variable clone() throws CloneNotSupportedException {
-		Variable var = new Variable(this.name);
+		Variable var = new Variable(this.getName());
 		if(this.isExistential())
 			var.setIsExistential();
 		var.setPositionInHead(this.getPositionInHead());

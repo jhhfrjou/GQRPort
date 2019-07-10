@@ -1,24 +1,12 @@
 import gqr.CompRewriting;
-import gqr.DatalogQuery;
-import gqr.FolderIterator;
 import gqr.GQR;
 import gqr.NonAnswerableQueryException;
-import gqr.Util;
 
 import isi.mediator.SourceQuery;
 
 import java.io.File;
-import java.io.IOException;
-import java.io.StringReader;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
-
-import antlr.RecognitionException;
-import antlr.TokenStreamException;
-import datalog.DatalogParser;
-import datalog.DatalogScanner;
 
 import junit.framework.TestCase;
 
@@ -57,9 +45,9 @@ public class CheckSolutionEquivalence extends TestCase {
 		for(int viewNo=47; viewNo<140; viewNo++)
 		{
 			System.out.println("********view "+viewNo+" *******");
-			
 
-			GQR g = new GQR(new File(data.getAbsolutePath()+"/"+"view_"+10+".txt"),new File(data.getAbsolutePath()+"/"+"view_"+1+".txt"),viewNo);
+
+			GQR g = new GQR(data.getAbsolutePath()+"/"+"view_"+10+".txt",data.getAbsolutePath()+"/"+"view_"+1+".txt");
 //			GQR g = new GQR(new File(data.getAbsolutePath()+"/"+"queryHD_"+countQ+".txt"),new File(data.getAbsolutePath()+"/"+"view_"+viewNo+".txt"),viewNo);
 
 			List<CompRewriting> res = new ArrayList<CompRewriting>();
@@ -89,10 +77,6 @@ public class CheckSolutionEquivalence extends TestCase {
 				
 				List<SourceQuery> gqr_queries = new ArrayList<SourceQuery>();
 
-				for(CompRewriting cr: res)
-				{
-					gqr_queries.add(Util.castQueryAsISISourceQuery(DatalogQuery.parseQueryIntoDatalog(cr.toString())));
-				}
 				System.out.println("GQR -->" + gqr_queries);
 //				System.out.println("MCDSAT --> "+count.mcdsat_queries.size());
 ////				

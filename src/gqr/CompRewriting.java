@@ -1,5 +1,7 @@
 package gqr;
 
+import uk.ac.soton.ecs.RelationalModel.Term;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -122,7 +124,7 @@ public class CompRewriting {
 
 	@Override
 	public String toString() {
-		String ret = new String();
+		String ret = "";
 		
 		for(AtomicRewriting at: atomicRewritings)
 		{
@@ -193,7 +195,7 @@ public class CompRewriting {
 		
 //		System.out.println("Atomic Rewritings (view heads) : ");
 		
-		String exp = new String();
+		String exp = "";
 		int freshvarcount = 1;
 //		System.out.println("Getting the expansion of:"+this);
 //		System.out.println("Going in atomic");
@@ -205,12 +207,12 @@ public class CompRewriting {
 			assert(at.getSourceHeads().size() == 1);
 			SourceHead sh = at.getSourceHeads().iterator().next();
 			
-			DatalogQuery rule = sh.getQuery();
+			Query rule = sh.getQuery();
 //			System.out.println(" 		Rule: "+rule);
 			
-			for(Variable v:rule.getExistentialVariables())
+			for(Term v:rule.getExistentialVariables())
 			{
-				rule.substituteVarWithFresh(v.name,true,freshvarcount);
+				rule.substituteVarWithFresh(v.getName(),true,freshvarcount);
 			}
 			freshvarcount++;
 			
@@ -220,7 +222,7 @@ public class CompRewriting {
 				
 				rule.substituteVarWithFresh(shv,false,0);
 //				System.out.println("		Rule after substituting shv:"+shv+" with fresh : "+rule);
-				String varInRule = rule.getHeadVariables().get(i).toString();
+				String varInRule = rule.getHeadTermsList().get(i).toString();
 				
 				rule.substituteVarWithNew(varInRule,shv);
 
@@ -230,7 +232,7 @@ public class CompRewriting {
 			
 //			System.out.println(" 		Rule after unification: "+rule);
 			
-			exp+="," + rule.printBody(rule.getPredicates());
+			exp+="," + rule.printBody(rule.getAtoms());
 			
 		}
 		exp = exp.replaceFirst(",","");
