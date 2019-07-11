@@ -1,6 +1,8 @@
 package gqr;
 
 
+import uk.ac.soton.ecs.RelationalModel.Predicate;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;

@@ -81,7 +81,7 @@ public class GQR {
 
 //		int viewNo=70;
         int viewNo = 0;
-        while(viewNo<=10)
+        while(viewNo<10000)
         {
             Database db;
             try {
@@ -111,7 +111,7 @@ public class GQR {
             long st = System.currentTimeMillis();
 
 //						GQR g = new GQR(new File(System.getProperty("user.dir")+"/queryHD_"+run+".txt"),new File(System.getProperty("user.dir")+"/views_"+run+".txt"), viewNo);
-            GQR g = new GQR(System.getProperty("user.dir")+"/GQR/resources/queryHD_"+run+".txt",System.getProperty("user.dir")+"/GQR/resources/views_"+run+".txt",30);
+            GQR g = new GQR("run_0/query_0.txt","run_0/views_for_q_0.txt", viewNo);
 
             int recorderViewNo = viewNo;
 //

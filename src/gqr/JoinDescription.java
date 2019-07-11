@@ -1,5 +1,7 @@
 package gqr;
 
+import uk.ac.soton.ecs.RelationalModel.Predicate;
+
 public class JoinDescription {
 
 	private Predicate predicate;
@@ -50,7 +52,7 @@ public class JoinDescription {
 	}
 
 	public boolean equalsIgnoreRepeatedID(JoinDescription queryJd) {
-		if(!(queryJd instanceof JoinDescription))
+		if(queryJd == null)
 			return false;
 		//TODO to change if toString() cahnges and decide to print only predicates nameand not parameters!
 		return ("-|" + this.getPredicate() + " on:(" + this.edgeNo + ")|-").equals("-|"+queryJd.getPredicate()+" on:("+queryJd.edgeNo+")|-");
@@ -58,7 +60,7 @@ public class JoinDescription {
 
 	//This is the old equals
 	public boolean equalsWithSamePred(JoinDescription obj) {
-		if(!(obj instanceof JoinDescription))
+		if(obj == null)
 			return false;
 		JoinDescription other = obj;
 		return (other.getPredicate() == this.predicate)&&(other.getEdgeNo()==this.getEdgeNo());

@@ -20,32 +20,11 @@ public class Query extends ConjunctiveQuery {
 
     public Query(ConjunctiveQuery cq) {
         super();
-        Query.convertTerms(cq);
         headVariables = new ArrayList<>();
         existentialVariables = new ArrayList<>();
         setHead(cq.getHead());
         setBody(cq.getBody());
     }
-
-    private static void convertTerms(ConjunctiveQuery cq) {
-        for(Atom atom : cq.getHead()) {
-            for (int i = 0; i < atom.getTerms().size(); i++) {
-                if(atom.getTerm(i) instanceof uk.ac.soton.ecs.RelationalModel.Variable) {
-                    atom.getTerms().set(i, new Variable(atom.getTerm(i).getName()));
-                    ((Variable) atom.getTerm(i)).setPositionInHead(i);
-                }
-            }
-        }
-
-        for(Atom atom : cq.getBody()) {
-            for (int i = 0; i < atom.getTerms().size(); i++) {
-                if(atom.getTerm(i) instanceof uk.ac.soton.ecs.RelationalModel.Variable) {
-                    atom.getTerms().set(i, new Variable(atom.getTerm(i).getName()));
-                }
-            }
-        }
-    }
-
 
     @Override
     public void setHead(HashSet<Atom> atoms) {
@@ -88,18 +67,18 @@ public class Query extends ConjunctiveQuery {
     public void computeQueryPJs() {
         Set<PredicateJoin> res = new HashSet<PredicateJoin>();
         int k = 1;
-        for (Atom p : this.getBody()) {
-            PredicateJoin qpj = new PredicateJoin(new Predicate(p.getPredicate()));//construct a cpj (in fact a pj)
+        for (Atom atom : this.getBody()) {
+            PredicateJoin qpj = new PredicateJoin(atom.getPredicate());//construct a cpj (in fact a pj)
             qpj.setSerialNumber(k++);
             int j = 1;
-            for (Term term : p.getTerms()) {//tale all the variables of the query PJ
+            for (Term term : atom.getTerms()) {//tale all the variables of the query PJ
                 assert (term instanceof Variable); //at this version all of predicate's "elements" (i.e., arguments) are variables
                 Variable v = (Variable) term;
                 Infobox queryVarBox = new Infobox();
                 JoinInView joiv = new JoinInView(headAtom.getPredicate().getName());
                 for (Atom otherpred : this.getBody()) //get the predicates once again
                 {
-                    if (!p.equals(otherpred)) {//for every other predicate
+                    if (!atom.equals(otherpred)) {//for every other predicate
                         //if the variable (is joined with) belongs also to otherpred
                         int i = 0;
                         for (Term ped : otherpred.getTerms())//find the place v exists in otherpred
@@ -107,7 +86,7 @@ public class Query extends ConjunctiveQuery {
                             i++;
                             assert (ped instanceof uk.ac.soton.ecs.RelationalModel.Variable);
                             if (term.equals(ped)) //add this join description to the variable's infobox
-                                joiv.addJoinDescription(new JoinDescription(new Predicate(otherpred.getPredicate()), i));
+                                joiv.addJoinDescription(new JoinDescription(otherpred.getPredicate(), i));
                         }
                     }
                 }// here we have a  complete infobox for v
@@ -128,7 +107,7 @@ public class Query extends ConjunctiveQuery {
         for (Atom a : getBody()) {
             uk.ac.soton.ecs.RelationalModel.Predicate p = a.getPredicate();
 //			System.out.println("--> predicate "+p);
-            PredicateJoin qpj = new PredicateJoin(new Predicate(p));//construct a cpj (in fact a pj)
+            PredicateJoin qpj = new PredicateJoin(p);//construct a cpj (in fact a pj)
             int j = 1;
 
             AtomicRewriting rw = new AtomicRewriting();
@@ -160,7 +139,7 @@ public class Query extends ConjunctiveQuery {
                             i++;
                             assert (ped instanceof Variable);
                             if (el.equals(ped)) //add this join description to the variable's infobox
-                                joiv.addJoinDescription(new JoinDescription(new Predicate(otherAtom.getPredicate()), i));
+                                joiv.addJoinDescription(new JoinDescription(otherAtom.getPredicate(), i));
                         }
                     }
                 }// here we have a  complete infobox for v

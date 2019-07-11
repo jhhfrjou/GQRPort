@@ -1,6 +1,9 @@
 package gqr;
 
-import com.mchange.v2.sql.filter.SynchronizedFilterResultSet;
+import uk.ac.soton.ecs.RelationalModel.DataType;
+import uk.ac.soton.ecs.RelationalModel.Variable;
+
+import java.lang.reflect.Method;
 
 public class GQRNode {
 
@@ -42,20 +45,26 @@ public class GQRNode {
 	
 	public static GQRNode dummyExistentialNode()
 	{
-		Variable v = new Variable(null);
+		Variable v = new Variable(null, DataType.INTEGER);
 		v.setIsExistential();
 		return new GQRNode(v, null);
 	}
 	
 	public static GQRNode dummyDistinguishedNode()
 	{
-		Variable v = new Variable(null);
+		Variable v = new Variable(null, DataType.INTEGER);
 		return new GQRNode(v, null);
 	}
 	
 	@Override
 	protected GQRNode clone() throws CloneNotSupportedException {
-		return new GQRNode(((Variable) getVariable()).clone(),this.getInfobox().clone());
+		Variable clonedVariable = new Variable(variable.getName(), variable.getType());
+		clonedVariable.setPositionInHead(variable.getPositionInHead());
+		if (variable.isExistential()) {
+			clonedVariable.setIsExistential();
+		}
+		return new GQRNode(clonedVariable, infobox.clone());
+
 	}
 	
 	@Override
