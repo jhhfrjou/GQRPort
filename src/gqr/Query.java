@@ -12,18 +12,25 @@ public class Query extends ConjunctiveQuery {
     private List<Variable> headVariables;
     private String name;
     List<Variable> existentialVariables;
+    boolean source;
 
     public Query() {
         super();
         headVariables = new ArrayList<>();
     }
 
-    public Query(ConjunctiveQuery cq) {
+    public Query(ConjunctiveQuery cq, boolean source) {
         super();
         headVariables = new ArrayList<>();
         existentialVariables = new ArrayList<>();
-        setHead(cq.getHead());
-        setBody(cq.getBody());
+        this.source = source;
+        if(source) {
+            setHead(cq.getBody());
+            setBody(cq.getHead());
+        } else {
+            setHead(cq.getHead());
+            setBody(cq.getBody());
+        }
     }
 
     @Override
@@ -381,7 +388,7 @@ public class Query extends ConjunctiveQuery {
 
     @Override
     protected Query clone() throws CloneNotSupportedException {
-        return new Query(this);
+        return new Query(this,source);
     }
 
     public String getName() {

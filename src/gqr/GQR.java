@@ -1,17 +1,10 @@
 package gqr;
 
 import gqr.Join.joinTypeInQuery;
-import gr.forth.ics.aggregator.Aggregator;
-import gr.forth.ics.aggregator.DataTypes;
-import gr.forth.ics.aggregator.Database;
-import gr.forth.ics.aggregator.DbFactories;
-import gr.forth.ics.aggregator.Record;
-import gr.forth.ics.aggregator.Schema;
 
 import isi.mediator.SourceQuery;
 
 import java.io.*;
-import java.sql.SQLException;
 import java.util.*;
 import java.util.Map.Entry;
 
@@ -20,7 +13,6 @@ import uk.ac.ox.cs.chaseBench.model.Domain;
 import uk.ac.ox.cs.chaseBench.model.Rule;
 import uk.ac.ox.cs.chaseBench.parser.CommonParser;
 import uk.ac.ox.cs.chaseBench.processors.InputCollector;
-import uk.ac.soton.ecs.RelationalModel.Atom;
 import uk.ac.soton.ecs.RelationalModel.ConjunctiveQuery;
 import uk.ac.soton.ecs.RelationalModel.DatabaseSchema;
 import uk.ac.soton.ecs.RelationalModel.parser.CBQueryConverter;
@@ -72,108 +64,78 @@ public class GQR {
         Query, ViewNo, Time, RewNo, ExcludedTime
     }
 
-    public static void main(String[] args) throws FileNotFoundException {
+    public static void main(String[] args) {
+        if (args.length == 0) {
+            System.out.println("Supported options:");
+            System.out.println("-s-sch   <file> (optional)    | the file containing the source schema");
+            System.out.println("-t-sch   <file> (optional)    | the file containing the target schema");
+            System.out.println("-st-tgds <file>               | the file containing the source-to-target TGDs");
+            System.out.println("-q       <file>               | the file containing the query");
+        } else {
+            String sSchemLoc = null;
+            String tSchemLoc = null;
+            String views = null;
+            String query = null;
 
+            for(int i = 0; i < args.length-1; i += 2) {
+                String argument = args[i];
+                switch(argument) {
+                    case "-s-sch":
+                        sSchemLoc = args[i+1];
+                        break;
+                    case "-t-sch":
+                        tSchemLoc = args[i+1];
+                        break;
+                    case "-st-tgds":
+                        views = args[i+1];
+                        break;
+                    case "-q":
+                        query = args[i+1];
+                        break;
+                    default:
+                        System.out.println("Unknown option '" + argument + "'.");
 
-        int run = 95;
-
-        //HPCC line below
-
-//		int viewNo=70;
-        int viewNo = 0;
-        while(viewNo<10000)
-        {
-            Database db;
-            try {
-                db = DbFactories.localDerby().getOrCreate("gqrDBchainTo10_run_"+run);
-            } catch (SQLException e1) {
-                throw new RuntimeException(e1);
-            }
-            Schema schema = new Schema().add(Variables.Query, DataTypes.MED_STRING).
-                    add(Variables.ViewNo, DataTypes.INTEGER).
-                    add(Variables.Time, DataTypes.LONG).
-                    add(Variables.RewNo, DataTypes.INTEGER).
-                    add(Variables.ExcludedTime, DataTypes.LONG);
-
-            Aggregator aggregator;
-            try {
-                aggregator = db.getOrCreate(schema, "aggregator");
-                //db.forceCreate(schema, "aggregator");
-                //aggregator = db.get("aggregator");
-            } catch (SQLException e1) {
-                throw new RuntimeException(e1);
-            }
-
-
-
-            System.out.println("********view "+viewNo+" *******");
-
-            long st = System.currentTimeMillis();
-
-//						GQR g = new GQR(new File(System.getProperty("user.dir")+"/queryHD_"+run+".txt"),new File(System.getProperty("user.dir")+"/views_"+run+".txt"), viewNo);
-            GQR g = new GQR("run_0/query_0.txt","run_0/views_for_q_0.txt", viewNo);
-
-            int recorderViewNo = viewNo;
-//
-            if(viewNo < 100)
-            {
-                viewNo+=20;
-            }
-            else if(viewNo < 200)
-            {
-                viewNo+=50;
-            }
-            else if(viewNo < 1000)
-            {
-                viewNo+=100;
-            }
-            else if(viewNo < 10000)
-            {
-                viewNo+=1000;
-            }
-
-            List<CompRewriting> ans = new ArrayList<CompRewriting>();
-            try {
-                ans = g.reformulate(g.getQuery());
-
-            } catch (NonAnswerableQueryException e) {
-                //					throw new RuntimeException(e);
-                long end = System.currentTimeMillis();
-                System.out.println("NA Case: "+recorderViewNo+ " Time:" + ((end-st)-g.dontCountTime));
-
-                aggregator.record(
-                        new Record().add(Variables.Query, g.getQuery().headAtom.getPredicate().getName()).
-                                add(Variables.ViewNo, recorderViewNo).
-                                add(Variables.Time, end-st -g.dontCountTime).
-                                add(Variables.RewNo, 0).
-                                add(Variables.ExcludedTime,g.dontCountTime)
-                );
-
-                try {
-                    db.shutDown();
-                } catch (SQLException e1) {
-                    throw new RuntimeException(e1);
                 }
-                continue;
+
             }
-            long end = System.currentTimeMillis();
+            GQR g;
+            if(views != null && query != null) {
+                if(sSchemLoc != null && tSchemLoc != null) {
+                    g = new GQR(query,views,sSchemLoc,tSchemLoc);
+                } else {
+                    g = new GQR(query, views,-1);
+                }
+                long st = System.currentTimeMillis();
 
-            aggregator.record(
-                    new Record().add(Variables.Query, g.getQuery().headAtom.getPredicate().getName()).
-                            add(Variables.ViewNo, recorderViewNo).
-                            add(Variables.Time, end-st -g.dontCountTime).
-                            add(Variables.RewNo, g.reNo).
-                            add(Variables.ExcludedTime,g.dontCountTime)
-            );
 
-            try {
-                db.shutDown();
-            } catch (SQLException e1) {
-                throw new RuntimeException(e1);
+                List<CompRewriting> ans = new ArrayList<CompRewriting>();
+                try {
+                    ans = g.reformulate(g.getQuery());
+                } catch (NonAnswerableQueryException e) {
+                    //					throw new RuntimeException(e);
+                    long end = System.currentTimeMillis();
+                    System.out.println("NA Case:  Time:" + ((end-st)-g.dontCountTime));
+                }
+                long end = System.currentTimeMillis();
+                System.out.println("Time:" + ((end-st)-g.dontCountTime) +" rewNo:"+g.reNo);
+            } else if(views == null){
+                System.out.println("Invalid argument setup: No source-to-target TGDs found");
+            } else {
+                System.out.println("Invalid argument setup: No query found");
             }
 
-            System.out.println("Case: "+recorderViewNo+" Time:" + ((end-st)-g.dontCountTime) +" rewNo:"+g.reNo);
         }
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -182,28 +144,47 @@ public class GQR {
     public Query getQuery() {
         return query;
     }
-    /**
-     * Initializes a GQR object. Parses numberofsources of the views (source definitions) and the query
-     * @param gueryFile the file containing the query
-     * @param viewsFile the file containing the sources
-     */
-    public GQR(String gueryFile, String viewsFile, int numberOfSources)
-    {
 
+
+
+
+    public GQR(String queryFile, String viewsFile, String viewSchema, String targetSchema) {
         long st = System.currentTimeMillis();
         try {
-            List<Query> views = getQueriesFromFile(viewsFile,numberOfSources);
+            List<Query> views = getQueriesWithSchema(viewsFile,viewSchema,targetSchema, true);
             Pair <Map <SourcePredicateJoin,List<SourcePredicateJoin>>,Map <SourcePredicateJoin,List<SourcePredicateJoin>>> pjs = Query.createSourcePredicateJoins(views);
             sourcePJs = pjs.getA();
             indexSourcePJs = pjs.getB();
             dontCountTime += System.currentTimeMillis() - st;
-            query = getQueriesFromFile(gueryFile,1).get(0);
+            query = getQueriesWithSchema(queryFile,viewSchema,targetSchema, false).get(0);
             query.computeQueryPJs();
         } catch (Exception e) {
             e.printStackTrace();
         }
         System.out.println("query: ");
         System.out.println("	"+query);
+    }
+
+    /**
+     * Initializes a GQR object. Parses numberofsources of the views (source definitions) and the query
+     * @param queryFile the file containing the query
+     * @param viewsFile the file containing the sources
+     */
+    public GQR(String queryFile, String viewsFile, int numberOfSources) {
+
+        long st = System.currentTimeMillis();
+        try {
+            List<Query> views = getQueriesNoSchema(viewsFile,numberOfSources, true);
+            Pair <Map <SourcePredicateJoin,List<SourcePredicateJoin>>,Map <SourcePredicateJoin,List<SourcePredicateJoin>>> pjs = Query.createSourcePredicateJoins(views);
+            sourcePJs = pjs.getA();
+            indexSourcePJs = pjs.getB();
+            dontCountTime += System.currentTimeMillis() - st;
+            query = getQueriesNoSchema(queryFile,1, false).get(0);
+            query.computeQueryPJs();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        System.out.println("Query: "+query);
 
     }
 
@@ -217,59 +198,33 @@ public class GQR {
     }
 
 
+    public List<Query> getQueriesWithSchema(String queryFile, String sourceSchema, String targetSchema, boolean source) throws Exception {
+        List<Rule>  rules = readRulesfromFile(queryFile);
+        uk.ac.ox.cs.chaseBench.model.DatabaseSchema dbSchema = new uk.ac.ox.cs.chaseBench.model.DatabaseSchema();
+        dbSchema.load(new File(sourceSchema),false);
+        dbSchema.load(new File(targetSchema),true);
+        CBSchemaConverter converter = new CBSchemaConverter();
+        DatabaseSchema rmSchema = combineSchemas(converter.toRelationalModel(dbSchema));
+        return createQueries(rules, dbSchema,rmSchema,-1, source);
+    }
 
-    public List<Query> getQueriesFromFile(String resourceName, int numberOfSources) throws Exception {
-        Set<Rule> cbRules = new LinkedHashSet<>();
+    public List<Query> getQueriesNoSchema(String queryFile, int numberOfSources, boolean source) throws Exception {
+        List<Rule> rules = readRulesfromFile(queryFile);
+        uk.ac.ox.cs.chaseBench.model.DatabaseSchema cbSchema = generateSchema(rules);
+        CBSchemaConverter schemaConverter = new CBSchemaConverter();
+        uk.ac.soton.ecs.RelationalModel.DatabaseSchema[] rmSchema = schemaConverter.toRelationalModel(cbSchema);
+        return createQueries(rules,cbSchema,combineSchemas(rmSchema),numberOfSources, source);
+
+    }
+
+    public List<Query> createQueries(List<Rule> cbRules, uk.ac.ox.cs.chaseBench.model.DatabaseSchema cbSchema, DatabaseSchema schema, int numberOfSources, boolean source) throws Exception {
         List<Query> queries = new ArrayList<>();
-        InputStream resourceStream = new FileInputStream(resourceName);
-        Reader input = new InputStreamReader(resourceStream);
-        StringBuffer output = new StringBuffer();
-        char[] buffer = new char[4096];
-        int read;
-        while ((read = input.read(buffer)) != -1)
-            output.append(buffer, 0, read);
-        InputCollector inputCollector = new InputCollector(null, cbRules, null);
-        CommonParser parser = new CommonParser(new StringReader(output.toString()));
-        parser.parse(inputCollector);
-        input.close();
-        uk.ac.ox.cs.chaseBench.model.DatabaseSchema dbSchema;
-        for ( Rule rule: cbRules) {
-            if (queries.size() == numberOfSources) {
+        CBQueryConverter queryConverter = new CBQueryConverter();
+        for (Rule rule: cbRules) {
+            if(queries.size() == numberOfSources)
                 return queries;
-            }
-            dbSchema = new uk.ac.ox.cs.chaseBench.model.DatabaseSchema();
-            for(uk.ac.ox.cs.chaseBench.model.Atom atom : rule.getBodyAtoms()) {
-                if (!dbSchema.getPredicates().contains(atom.getPredicate())) {
-                    String[] colName = new String[atom.getNumberOfArguments()];
-                    Domain[] doms = new Domain[atom.getNumberOfArguments()];
-                    for (int i = 0; i < atom.getNumberOfArguments(); i++) {
-                        uk.ac.ox.cs.chaseBench.model.Term temp = atom.getArgument(i);
-                        colName[i] = temp.toString();
-                        if (temp instanceof uk.ac.ox.cs.chaseBench.model.Constant)
-                            doms[i] = ((Constant) temp).getDomain();
-                        else
-                            doms[i] = Domain.INTEGER;
-                    }
-                    dbSchema.addPredicateSchema(atom.getPredicate(), false, colName, doms);
-                }
-            }
-            for(uk.ac.ox.cs.chaseBench.model.Atom atom : rule.getHeadAtoms()) {
-                String[] colName = new String[atom.getNumberOfArguments()];
-                Domain[] doms = new Domain[atom.getNumberOfArguments()];
-                for(int i = 0; i < atom.getNumberOfArguments(); i++) {
-                    uk.ac.ox.cs.chaseBench.model.Term temp = atom.getArgument(i);
-                    colName[i] = temp.toString();
-                    doms[i] = Domain.INTEGER;
-                }
-                dbSchema.addPredicateSchema(atom.getPredicate(),true,colName,doms);
-            }
-
-
-            CBSchemaConverter schemaConverter = new CBSchemaConverter();
-            uk.ac.soton.ecs.RelationalModel.DatabaseSchema[] rmSchema = schemaConverter.toRelationalModel(dbSchema);
-            CBQueryConverter queryConverter = new CBQueryConverter();
-            ConjunctiveQuery cQ = queryConverter.toRelationalModel(rule,dbSchema,combineSchemas(rmSchema));
-            queries.add(new Query(cQ));
+            ConjunctiveQuery cQ = queryConverter.toRelationalModel(rule,cbSchema,schema);
+            queries.add(new Query(cQ,source));
         }
         return queries;
     }
@@ -283,6 +238,71 @@ public class GQR {
             return schemas[0];
         }
         return null;
+    }
+
+    private List<Rule> readRulesfromFile(String ruleLocation) throws Exception {
+        List<Rule> cbRules = new ArrayList<>();
+        StringBuffer output = getStringBufferofFile(ruleLocation);
+        InputCollector inputCollector = new InputCollector(null, cbRules, null);
+        CommonParser parser = new CommonParser(new StringReader(output.toString()));
+        parser.parse(inputCollector);
+        return cbRules;
+    }
+
+    private uk.ac.ox.cs.chaseBench.model.DatabaseSchema readSchemafromFile(String schemaLocation) throws Exception {
+        uk.ac.ox.cs.chaseBench.model.DatabaseSchema schema = new uk.ac.ox.cs.chaseBench.model.DatabaseSchema();
+        StringBuffer output = getStringBufferofFile(schemaLocation);
+        InputCollector inputCollector = new InputCollector(schema, null, null);
+        CommonParser parser = new CommonParser(new StringReader(output.toString()));
+        parser.parse(inputCollector);
+        return schema;
+    }
+
+    private StringBuffer getStringBufferofFile(String schemaLocation) throws IOException {
+        InputStream resourceStream = new FileInputStream(schemaLocation);
+        Reader input = new InputStreamReader(resourceStream);
+        StringBuffer output = new StringBuffer();
+        char[] buffer = new char[4096];
+        int read;
+        while ((read = input.read(buffer)) != -1)
+            output.append(buffer, 0, read);
+        input.close();
+        return output;
+    }
+
+
+    public uk.ac.ox.cs.chaseBench.model.DatabaseSchema generateSchema(List<Rule> rules) {
+        uk.ac.ox.cs.chaseBench.model.DatabaseSchema schema = new uk.ac.ox.cs.chaseBench.model.DatabaseSchema();
+        for ( Rule rule: rules) {
+            for (uk.ac.ox.cs.chaseBench.model.Atom atom : rule.getBodyAtoms()) {
+                if (!schema.getPredicates().contains(atom.getPredicate())) {
+                    String[] colName = new String[atom.getNumberOfArguments()];
+                    Domain[] doms = new Domain[atom.getNumberOfArguments()];
+                    for (int i = 0; i < atom.getNumberOfArguments(); i++) {
+                        uk.ac.ox.cs.chaseBench.model.Term temp = atom.getArgument(i);
+                        colName[i] = temp.toString();
+                        if (temp instanceof uk.ac.ox.cs.chaseBench.model.Constant)
+                            doms[i] = ((Constant) temp).getDomain();
+                        else
+                            doms[i] = Domain.INTEGER;
+                    }
+                    schema.addPredicateSchema(atom.getPredicate(), false, colName, doms);
+                }
+            }
+            for (uk.ac.ox.cs.chaseBench.model.Atom atom : rule.getHeadAtoms()) {
+                if (!schema.getPredicates().contains(atom.getPredicate())) {
+                    String[] colName = new String[atom.getNumberOfArguments()];
+                    Domain[] doms = new Domain[atom.getNumberOfArguments()];
+                    for (int i = 0; i < atom.getNumberOfArguments(); i++) {
+                        uk.ac.ox.cs.chaseBench.model.Term temp = atom.getArgument(i);
+                        colName[i] = temp.toString();
+                        doms[i] = Domain.INTEGER;
+                    }
+                    schema.addPredicateSchema(atom.getPredicate(), true, colName, doms);
+                }
+            }
+        }
+        return schema;
     }
 
     /**
