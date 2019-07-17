@@ -105,4 +105,26 @@ class GQRTest {
             assertThrows(NonAnswerableQueryException.class,null);
         } catch (NonAnswerableQueryException e) {        }
     }
+
+    @Test
+    void writeValidSchema() {
+        File source = new File("tempSource.txt");
+        File target = new File("tempTarget.txt");
+        try {
+            uk.ac.ox.cs.chaseBench.model.DatabaseSchema dbSchema = GQR.generateSchema(GQR.readRulesfromFile("resources/paper_views.txt"));
+            dbSchema.save(target,true);
+            dbSchema.save(source,false);
+            uk.ac.ox.cs.chaseBench.model.DatabaseSchema dbSchema2 = new uk.ac.ox.cs.chaseBench.model.DatabaseSchema();
+            dbSchema2.load(target,true);
+            dbSchema2.load(source,false);
+            source.delete();
+            target.delete();
+        } catch (Exception e) {
+            e.printStackTrace();
+            fail();
+            source.delete();
+            target.delete();
+        }
+
+    }
 }

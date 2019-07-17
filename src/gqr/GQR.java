@@ -65,21 +65,30 @@ public class GQR {
     }
 
     public static void main(String[] args) {
+
+
+
         if (args.length == 0) {
             System.out.println("Supported options:");
-            System.out.println("-s-sch   <file> (optional)    | the file containing the source schema");
-            System.out.println("-t-sch   <file> (optional)    | the file containing the target schema");
-            System.out.println("-st-tgds <file>               | the file containing the source-to-target TGDs");
-            System.out.println("-q       <file>               | the file containing the query");
+            System.out.println("-s-sch      <file> (optional)     | the file containing the source schema");
+            System.out.println("-t-sch      <file> (optional)     | the file containing the target schema");
+            System.out.println("-q          <file> or             | the file containing the query");
+            System.out.println("-genSchema  <directory>           | generate a schema using the source-to-target TGDs and save to a file");
+            System.out.println("                                  | the schema will be saved as s-schema.txt and t-schema.txt in the given folder");
+            System.out.println("-st-tgds    <file>                | the file containing the source-to-target TGDs");
         } else {
             String sSchemLoc = null;
             String tSchemLoc = null;
             String views = null;
             String query = null;
+            String generate = null;
 
-            for(int i = 0; i < args.length-1; i += 2) {
+            for(int i = 0; i < args.length-1; i+=2) {
                 String argument = args[i];
                 switch(argument) {
+                    case "-genSchema":
+                        generate = args[i+1];
+                        break;
                     case "-s-sch":
                         sSchemLoc = args[i+1];
                         break;
@@ -94,16 +103,33 @@ public class GQR {
                         break;
                     default:
                         System.out.println("Unknown option '" + argument + "'.");
+                        break;
 
                 }
 
             }
             GQR g;
-            if(views != null && query != null) {
-                if(sSchemLoc != null && tSchemLoc != null) {
-                    g = new GQR(query,views,sSchemLoc,tSchemLoc);
+            if(query != null && generate != null) {
+                System.out.println("Invalid argument setup: Cannot generate a schema and ");
+            } else if(views == null){
+                System.out.println("Invalid argument setup: No source-to-target TGDs found");
+            } else if(generate != null) {
+                try {
+                    List<Rule> rules = readRulesfromFile(views);
+                    uk.ac.ox.cs.chaseBench.model.DatabaseSchema dbSchema = generateSchema(rules);
+                    dbSchema.save(new File(generate+"/s-schema.txt"),false);
+                    dbSchema.save(new File(generate+"/t-schema.txt"),true);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+
+            } else if(query == null) {
+                System.out.println("Invalid argument setup: No operation included.");
+            } else {
+                if (sSchemLoc != null && tSchemLoc != null) {
+                    g = new GQR(query, views, sSchemLoc, tSchemLoc);
                 } else {
-                    g = new GQR(query, views,-1);
+                    g = new GQR(query, views, -1);
                 }
                 long st = System.currentTimeMillis();
 
@@ -114,31 +140,13 @@ public class GQR {
                 } catch (NonAnswerableQueryException e) {
                     //					throw new RuntimeException(e);
                     long end = System.currentTimeMillis();
-                    System.out.println("NA Case:  Time:" + ((end-st)-g.dontCountTime));
+                    System.out.println("NA Case:  Time:" + ((end - st) - g.dontCountTime));
                 }
                 long end = System.currentTimeMillis();
-                System.out.println("Time:" + ((end-st)-g.dontCountTime) +" rewNo:"+g.reNo);
-            } else if(views == null){
-                System.out.println("Invalid argument setup: No source-to-target TGDs found");
-            } else {
-                System.out.println("Invalid argument setup: No query found");
+                System.out.println("Time:" + ((end - st) - g.dontCountTime) + " rewNo:" + g.reNo);
+
             }
-
         }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
     }
 
     public Query getQuery() {
@@ -198,7 +206,7 @@ public class GQR {
     }
 
 
-    public List<Query> getQueriesWithSchema(String queryFile, String sourceSchema, String targetSchema, boolean source) throws Exception {
+    private static List<Query> getQueriesWithSchema(String queryFile, String sourceSchema, String targetSchema, boolean source) throws Exception {
         List<Rule>  rules = readRulesfromFile(queryFile);
         uk.ac.ox.cs.chaseBench.model.DatabaseSchema dbSchema = new uk.ac.ox.cs.chaseBench.model.DatabaseSchema();
         dbSchema.load(new File(sourceSchema),false);
@@ -208,7 +216,7 @@ public class GQR {
         return createQueries(rules, dbSchema,rmSchema,-1, source);
     }
 
-    public List<Query> getQueriesNoSchema(String queryFile, int numberOfSources, boolean source) throws Exception {
+    private static List<Query> getQueriesNoSchema(String queryFile, int numberOfSources, boolean source) throws Exception {
         List<Rule> rules = readRulesfromFile(queryFile);
         uk.ac.ox.cs.chaseBench.model.DatabaseSchema cbSchema = generateSchema(rules);
         CBSchemaConverter schemaConverter = new CBSchemaConverter();
@@ -217,7 +225,7 @@ public class GQR {
 
     }
 
-    public List<Query> createQueries(List<Rule> cbRules, uk.ac.ox.cs.chaseBench.model.DatabaseSchema cbSchema, DatabaseSchema schema, int numberOfSources, boolean source) throws Exception {
+    private static List<Query> createQueries(List<Rule> cbRules, uk.ac.ox.cs.chaseBench.model.DatabaseSchema cbSchema, DatabaseSchema schema, int numberOfSources, boolean source) throws Exception {
         List<Query> queries = new ArrayList<>();
         CBQueryConverter queryConverter = new CBQueryConverter();
         for (Rule rule: cbRules) {
@@ -240,7 +248,7 @@ public class GQR {
         return null;
     }
 
-    private List<Rule> readRulesfromFile(String ruleLocation) throws Exception {
+    public static List<Rule> readRulesfromFile(String ruleLocation) throws Exception {
         List<Rule> cbRules = new ArrayList<>();
         StringBuffer output = getStringBufferofFile(ruleLocation);
         InputCollector inputCollector = new InputCollector(null, cbRules, null);
@@ -249,16 +257,8 @@ public class GQR {
         return cbRules;
     }
 
-    private uk.ac.ox.cs.chaseBench.model.DatabaseSchema readSchemafromFile(String schemaLocation) throws Exception {
-        uk.ac.ox.cs.chaseBench.model.DatabaseSchema schema = new uk.ac.ox.cs.chaseBench.model.DatabaseSchema();
-        StringBuffer output = getStringBufferofFile(schemaLocation);
-        InputCollector inputCollector = new InputCollector(schema, null, null);
-        CommonParser parser = new CommonParser(new StringReader(output.toString()));
-        parser.parse(inputCollector);
-        return schema;
-    }
 
-    private StringBuffer getStringBufferofFile(String schemaLocation) throws IOException {
+    private static StringBuffer getStringBufferofFile(String schemaLocation) throws IOException {
         InputStream resourceStream = new FileInputStream(schemaLocation);
         Reader input = new InputStreamReader(resourceStream);
         StringBuffer output = new StringBuffer();
@@ -271,7 +271,7 @@ public class GQR {
     }
 
 
-    public uk.ac.ox.cs.chaseBench.model.DatabaseSchema generateSchema(List<Rule> rules) {
+    public static uk.ac.ox.cs.chaseBench.model.DatabaseSchema generateSchema(List<Rule> rules) {
         uk.ac.ox.cs.chaseBench.model.DatabaseSchema schema = new uk.ac.ox.cs.chaseBench.model.DatabaseSchema();
         for ( Rule rule: rules) {
             for (uk.ac.ox.cs.chaseBench.model.Atom atom : rule.getBodyAtoms()) {
@@ -280,11 +280,11 @@ public class GQR {
                     Domain[] doms = new Domain[atom.getNumberOfArguments()];
                     for (int i = 0; i < atom.getNumberOfArguments(); i++) {
                         uk.ac.ox.cs.chaseBench.model.Term temp = atom.getArgument(i);
-                        colName[i] = temp.toString();
+                        colName[i] = temp.toString().substring(1);
                         if (temp instanceof uk.ac.ox.cs.chaseBench.model.Constant)
                             doms[i] = ((Constant) temp).getDomain();
                         else
-                            doms[i] = Domain.INTEGER;
+                            doms[i] = Domain.STRING;
                     }
                     schema.addPredicateSchema(atom.getPredicate(), false, colName, doms);
                 }
@@ -295,8 +295,8 @@ public class GQR {
                     Domain[] doms = new Domain[atom.getNumberOfArguments()];
                     for (int i = 0; i < atom.getNumberOfArguments(); i++) {
                         uk.ac.ox.cs.chaseBench.model.Term temp = atom.getArgument(i);
-                        colName[i] = temp.toString();
-                        doms[i] = Domain.INTEGER;
+                        colName[i] = temp.toString().substring(1);
+                        doms[i] = Domain.STRING;
                     }
                     schema.addPredicateSchema(atom.getPredicate(), true, colName, doms);
                 }

@@ -45,14 +45,14 @@ public class GQRNode {
 	
 	public static GQRNode dummyExistentialNode()
 	{
-		Variable v = new Variable(null, DataType.INTEGER);
+		Variable v = new Variable(null, DataType.STRING);
 		v.setIsExistential();
 		return new GQRNode(v, null);
 	}
 	
 	public static GQRNode dummyDistinguishedNode()
 	{
-		Variable v = new Variable(null, DataType.INTEGER);
+		Variable v = new Variable(null, DataType.STRING);
 		return new GQRNode(v, null);
 	}
 	
