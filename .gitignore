@@ -5,3 +5,15 @@ bin/
 src/.project
 src/.classpath
 src/antlr/
+
+\.settings/
+
+src/META-INF/
+
+\.mod
+
+\.project
+
+derby\.log
+
+\.classpath
