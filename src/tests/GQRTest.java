@@ -24,18 +24,6 @@ class GQRTest {
     }
 
     @Test
-    void reformulatePassingOBDAQ2Query() {
-        try {
-            gqr = new GQR("resources/Q2.txt", "resources/Q2-tgds.rule", -1);
-            List<CompRewriting> rewrites = gqr.reformulate(gqr.getQueries().get(0));
-            System.out.println(SQLCreator.manyQueriestoSQL(rewrites));
-
-        } catch (NonAnswerableQueryException | InconsistentAtomException e) {
-            fail();
-        }
-    }
-
-    @Test
     void reformulatePassingQ55() {
         try {
             gqr = new GQR("resources/queryHD_55.txt", "resources/views_55.txt", -1);

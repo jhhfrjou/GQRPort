@@ -2,8 +2,6 @@ import gqr.CompRewriting;
 import gqr.GQR;
 import gqr.NonAnswerableQueryException;
 
-import isi.mediator.SourceQuery;
-
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
@@ -75,10 +73,7 @@ public class CheckSolutionEquivalence extends TestCase {
 //				catch (InterruptedException e) {
 //					throw new RuntimeException(e);
 //			}
-				
-				List<SourceQuery> gqr_queries = new ArrayList<SourceQuery>();
 
-				System.out.println("GQR -->" + gqr_queries);
 //				System.out.println("MCDSAT --> "+count.mcdsat_queries.size());
 ////				
 //			List<SourceQuery> msat_queries = new ArrayList<SourceQuery>();

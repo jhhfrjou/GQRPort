@@ -2,8 +2,6 @@ package gqr;
 
 import gqr.Join.joinTypeInQuery;
 
-import isi.mediator.SourceQuery;
-
 import java.io.*;
 import java.util.*;
 import java.util.Map.Entry;
@@ -369,7 +367,7 @@ public class GQR {
                     //I change collect rewritings and I am additionally passing the original query (casted as ISI query)
                     //in order to check that the rewritings collected are contained in the query
 
-                    return collectRewritings(resultCPJs, Util.castQueryAsISISourceQuery(query/*parseQueryIntoDatalog(cr.toString())*/));
+                    return collectRewritings(resultCPJs);
                     //return;
                 }
 
@@ -399,7 +397,7 @@ public class GQR {
         }
 
         //		reNo = countRewritings(resultCPJs);
-        return collectRewritings(resultCPJs, Util.castQueryAsISISourceQuery(query));
+        return collectRewritings(resultCPJs);
     }
 
 
@@ -419,7 +417,7 @@ public class GQR {
         return true;
     }
 
-    private List<CompRewriting> collectRewritings(Set<CompositePredicateJoin> resultCPJs, SourceQuery inputQuery) throws InconsistentAtomException {
+    private List<CompRewriting> collectRewritings(Set<CompositePredicateJoin> resultCPJs) throws InconsistentAtomException {
         List<CompRewriting> res = new ArrayList<CompRewriting>();
         reNo = 0;
 

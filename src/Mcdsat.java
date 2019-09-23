@@ -1,35 +1,12 @@
-
-
-
-import gr.forth.ics.aggregator.Aggregator;
-import gr.forth.ics.aggregator.DataTypes;
-import gr.forth.ics.aggregator.Database;
-import gr.forth.ics.aggregator.DbFactories;
-import gr.forth.ics.aggregator.Filters;
-import gr.forth.ics.aggregator.Record;
-import gr.forth.ics.aggregator.Records;
-import gr.forth.ics.aggregator.Schema;
-import gr.forth.ics.aggregator.diagram.Diagram;
-import gr.forth.ics.aggregator.diagram.DiagramFactory;
-import gr.forth.ics.aggregator.diagram.gnuplot.GnuPlotContext;
-import gr.forth.ics.aggregator.diagram.gnuplot.GnuPlotWriter;
-import gr.forth.ics.aggregator.diagram.jfreechart.Chart;
-import gr.forth.ics.aggregator.diagram.jfreechart.ChartFactory;
-
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.sql.SQLException;
 import java.util.StringTokenizer;
 
 
 public class Mcdsat {
-
-	/**
-	 * @param args
-	 */
 
 	private enum Variables {
 		Query, ViewNo, Time, RewNo
