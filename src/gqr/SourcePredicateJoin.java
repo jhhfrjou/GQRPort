@@ -1,7 +1,9 @@
 package gqr;
 
 
-import uk.ac.soton.ecs.RelationalModel.Predicate;
+import uk.ac.ox.cs.JRDFox.model.Datatype;
+import uk.ac.soton.ecs.RelationalModel.*;
+import uk.ac.soton.ecs.RelationalModel.Exceptions.InconsistentAtomException;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -9,10 +11,11 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Vector;
+import java.util.stream.Collectors;
 
 public class SourcePredicateJoin extends PredicateJoin {
 	private PredicateJoin queryCPJ;
-	private List<Pair<String,Pair<String,String>>> equates = new ArrayList<Pair<String,Pair<String,String>>>();	
+	private List<Pair<Term,Pair<Term,Term>>> equates = new ArrayList<>();
 
 	@Override
 	public int hashCode() {
@@ -161,7 +164,7 @@ public class SourcePredicateJoin extends PredicateJoin {
 	}
 	
 	
-	protected SourcePredicateJoin cloneDummy() throws CloneNotSupportedException {
+	protected SourcePredicateJoin cloneDummy() throws CloneNotSupportedException, InconsistentAtomException {
 		Map<AtomicRewriting,AtomicRewriting> r2r = new HashMap<AtomicRewriting, AtomicRewriting>();
 
 		SourcePredicateJoin spj = new SourcePredicateJoin(this.getPredicate());		
@@ -297,23 +300,29 @@ public class SourcePredicateJoin extends PredicateJoin {
 			
 			List<String> newVars = new ArrayList<String>();
 			boolean gotIn = false;
-			for(String var: re.getSourceHeads().iterator().next().getSourceHeadVars())
+			for(Term var: re.getSourceHeads().iterator().next().getSourceHeadVars())
 			{
-				newVars.add(var.concat("UR"+i));//UNDERSCORE REPEATED id
+				String varString = var.toString();
+				newVars.add(varString.concat("UR"+i));//UNDERSCORE REPEATED id
 				if(!gotIn)
 					gotIn=true;
 			}
 			//TODO it will not get in if we face "witnesses", i.e., we use sources but not interested or don't have distnguished vars in their heads
 			assert(gotIn);
-			re.getSourceHeads().iterator().next().setSourceHeadVars(newVars);
+			List<Term> list = new ArrayList<>();
+			for (String name : newVars) {
+				Variable variable = new Variable(name, DataType.STRING);
+				list.add(variable);
+			}
+			re.getSourceHeads().iterator().next().setSourceHeadVars(list);
 		}
 	}
 
-	public void addEquate(String string, String string2, String queryVar) {
-		Pair<String,String> p = new Pair<String,String>(string,string2); 
-		equates.add(new Pair<String,Pair<String,String>>(queryVar,p));
+	public void addEquate(Term string, Term string2, Term queryVar) {
+		Pair<Term,Term> p = new Pair<>(string,string2);
+		equates.add(new Pair<>(queryVar,p));
 	}
-	public List<Pair<String, Pair<String, String>>> getEquates() {
+	public List<Pair<Term, Pair<Term, Term>>> getEquates() {
 		return equates;
 	}
 

@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import junit.framework.TestCase;
+import uk.ac.soton.ecs.RelationalModel.Exceptions.InconsistentAtomException;
 
 
 public class CheckSolutionEquivalence extends TestCase {
@@ -52,9 +53,9 @@ public class CheckSolutionEquivalence extends TestCase {
 
 			List<CompRewriting> res = new ArrayList<CompRewriting>();
 			try {
-				res = g.reformulate(g.getQuery());
+				res = g.reformulate(g.getQueries().get(0));
 				
-			} catch (NonAnswerableQueryException e) {
+			} catch (NonAnswerableQueryException | InconsistentAtomException e) {
 			}
 
 		

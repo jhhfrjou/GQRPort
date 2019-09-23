@@ -1,6 +1,7 @@
 package gqr;
 
 import uk.ac.soton.ecs.RelationalModel.DataType;
+import uk.ac.soton.ecs.RelationalModel.Term;
 import uk.ac.soton.ecs.RelationalModel.Variable;
 
 import java.lang.reflect.Method;
@@ -10,7 +11,7 @@ public class GQRNode {
 	private Variable variable;
 	private Infobox infobox;
 	private boolean isExistential;
-	private String queryVar = null;
+	private Term queryVar = null;
 
 	public GQRNode(Variable v, Infobox box) {
 		variable = v;
@@ -73,12 +74,12 @@ public class GQRNode {
 	}
 
 
-	public void addQueryVar(String name) {
+	public void addQueryVar(Term name) {
 		queryVar = name;
 	}
 
 
-	public String getQueryVar() {
+	public Term getQueryVar() {
 //		if(queryVar == null)
 //			throw new RuntimeException("uninitialized query variable reference");
 		return queryVar;

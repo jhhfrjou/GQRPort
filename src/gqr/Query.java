@@ -1,6 +1,7 @@
 package gqr;
 
 import uk.ac.soton.ecs.RelationalModel.*;
+import uk.ac.soton.ecs.RelationalModel.Exceptions.InconsistentAtomException;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -24,7 +25,7 @@ public class Query extends ConjunctiveQuery {
         headVariables = new ArrayList<>();
         existentialVariables = new ArrayList<>();
         this.source = source;
-        if(source) {
+        if (source) {
             setHead(cq.getBody());
             setBody(cq.getHead());
         } else {
@@ -38,10 +39,10 @@ public class Query extends ConjunctiveQuery {
         for (Atom atom : atoms) {
             headAtom = atom;
             name = headAtom.getPredicate().getName();
-            for(Term t : atom.getTerms()) {
-                if(t instanceof Variable) {
+            for (Term t : atom.getTerms()) {
+                if (t instanceof Variable) {
                     headVariables.add((Variable) t);
-                    ((Variable) t).setPositionInHead(headVariables.size()-1);
+                    ((Variable) t).setPositionInHead(headVariables.size() - 1);
                 }
             }
             break;
@@ -51,9 +52,9 @@ public class Query extends ConjunctiveQuery {
 
     @Override
     public void setBody(HashSet<Atom> atoms) {
-        for(Atom atom : atoms) {
+        for (Atom atom : atoms) {
             for (Term term : atom.getTerms()) {
-                if(headVariables.indexOf(term) == -1) {
+                if (headVariables.indexOf(term) == -1) {
                     ((Variable) term).setIsExistential();
                     existentialVariables.add((Variable) term);
                 } else {
@@ -61,7 +62,6 @@ public class Query extends ConjunctiveQuery {
                 }
             }
         }
-
 
 
         super.setBody(atoms);
@@ -108,7 +108,7 @@ public class Query extends ConjunctiveQuery {
         queryPJs = res;
     }
 
-    public Set<PredicateJoin> constructAndReturnPJs() {
+    public Set<PredicateJoin> constructAndReturnPJs() throws InconsistentAtomException {
 
         Set<PredicateJoin> res = new HashSet<PredicateJoin>();
         for (Atom a : getBody()) {
@@ -166,7 +166,7 @@ public class Query extends ConjunctiveQuery {
 
 //			System.out.println("final rewriting "+head_variables);
             SourceHead sh = new SourceHead(this.name);
-            sh.setSourceHeadVars(head_variables);
+            sh.setSourceHeadVars(head_variables.stream().map(var -> new Variable(var,DataType.STRING)).collect(Collectors.toList()));
             try {
                 sh.setQuery(this.clone());
             } catch (CloneNotSupportedException e) {
@@ -184,22 +184,19 @@ public class Query extends ConjunctiveQuery {
     private List<String> insertDontCaresAndPredName(List<String> head_variables, String predicate_name) {
 
         List<String> newHeadVar = new ArrayList<String>();
-        if(head_variables.isEmpty())
-        {
-            for(int i =0; i<this.headVariables.size(); i++)
-            {
-                newHeadVar.add(i, "DC"+i+"AT"+this.name+"DOT"+predicate_name+"CiD0DiC");
+        if (head_variables.isEmpty()) {
+            for (int i = 0; i < this.headVariables.size(); i++) {
+                newHeadVar.add(i, "DC" + i + "AT" + this.name + "DOT" + predicate_name + "CiD0DiC");
             }
-        }
-        else{
+        } else {
 
             //TODO I might be able to give a quicker solution without sorting
             Collections.sort(head_variables, new Comparator<String>() {
 
                 public int compare(String o1, String o2) {
-                    if(Integer.parseInt(o1) < Integer.parseInt(o2))
+                    if (Integer.parseInt(o1) < Integer.parseInt(o2))
                         return -1;
-                    else if(Integer.parseInt(o1) > Integer.parseInt(o2))
+                    else if (Integer.parseInt(o1) > Integer.parseInt(o2))
                         return 1;
                     else
                         return 0;
@@ -215,8 +212,7 @@ public class Query extends ConjunctiveQuery {
 //				inner_index++;
 //			}
 
-            for(int i =0; i<this.headVariables.size(); i++)
-            {
+            for (int i = 0; i < this.headVariables.size(); i++) {
 
 //				System.out.println(head_variables);
 //				System.out.println(inner_index);
@@ -237,16 +233,14 @@ public class Query extends ConjunctiveQuery {
 //						continue;
 
                 //				System.out.println("I'm checking whether "+i+" is in partialHead.\n\t Actually I'm only checking index "+inner_index);
-                if((inner_index == head_variables.size()) || Integer.parseInt(head_variables.get(inner_index)) != i  )
-                {
+                if ((inner_index == head_variables.size()) || Integer.parseInt(head_variables.get(inner_index)) != i) {
                     //					System.out.println("\t N--> It is NOT so I put a don't care");
-                    newHeadVar.add(i, "DC"+i+"AT"+this.name+"DOT"+predicate_name+"CiD0DiC");
-                }
-                else{
-                    assert(head_variables.get(inner_index).equals(""+i));
+                    newHeadVar.add(i, "DC" + i + "AT" + this.name + "DOT" + predicate_name + "CiD0DiC");
+                } else {
+                    assert (head_variables.get(inner_index).equals("" + i));
                     //					System.out.println("\t Y--> It IS so I put "+inner_index +" \n\t ..and I increase index by 1");
 
-                    newHeadVar.add("Z"+i+"AT"+this.name+"DOT"+predicate_name+"CiD0DiC");
+                    newHeadVar.add("Z" + i + "AT" + this.name + "DOT" + predicate_name + "CiD0DiC");
                     inner_index++;
                 }
 //				}
@@ -257,8 +251,7 @@ public class Query extends ConjunctiveQuery {
 
     private void assertSorted(List<String> partialHeadVarList) {
 
-        for(int i=0; i<partialHeadVarList.size()-1; i++)
-        {
+        for (int i = 0; i < partialHeadVarList.size() - 1; i++) {
 //			System.out.println(partialHeadVarList);
 //			if(Integer.parseInt(partialHeadVarList.get(i)) == -1)
 //				continue;
@@ -268,75 +261,63 @@ public class Query extends ConjunctiveQuery {
 //			if(j<partialHeadVarList.size())//if((Integer.parseInt(partialHeadVarList.get(i)) != -1) && (Integer.parseInt(partialHeadVarList.get(i+1))!=-1))
 
             //TODO this assertion initially was strictly '<'  but it broke so I put '<='. I NEED TO VERIFY THIS IS CORRECT.
-            assert(Integer.parseInt(partialHeadVarList.get(i)) <= Integer.parseInt(partialHeadVarList.get(i+1)));
+            assert (Integer.parseInt(partialHeadVarList.get(i)) <= Integer.parseInt(partialHeadVarList.get(i + 1)));
         }
     }
 
     public void countRepeatedPredicates() {
         //holds for every source how many occurences of the same pj this query contains
         //We're using SourcePredicateJoin objects only to take advantage of their hash/equals method
-        Map <SourcePredicateJoin,Integer> occurences_of_the_same_pj = new HashMap<SourcePredicateJoin, Integer>();
+        Map<SourcePredicateJoin, Integer> occurences_of_the_same_pj = new HashMap<SourcePredicateJoin, Integer>();
 
-        for(PredicateJoin pj: getQueryPJs()) //get all the pjs with their infoboxes only updated for this source
+        for (PredicateJoin pj : getQueryPJs()) //get all the pjs with their infoboxes only updated for this source
         {
             SourcePredicateJoin spj = new SourcePredicateJoin(pj);
 
             Integer repeatedTimes = occurences_of_the_same_pj.get(spj);//get the list of the already existed and constructed
             //PJs that can hold information also for this PJ
-            if(repeatedTimes == null) //first time we see this PJ in the query
+            if (repeatedTimes == null) //first time we see this PJ in the query
             {
                 occurences_of_the_same_pj.put(spj, 1);
                 spj.getPredicate().setRepeatedId(0);
-            }
-            else
-            {
+            } else {
                 spj.getPredicate().setRepeatedId(repeatedTimes);
-                occurences_of_the_same_pj.put(spj,++repeatedTimes);//new PJ in town
+                occurences_of_the_same_pj.put(spj, ++repeatedTimes);//new PJ in town
             }
         }
 
     }
 
 
-    public void substituteVarWithFresh(String shv, boolean ex,int exfreshcount) {
+    public void substituteVarWithFresh(String shv, boolean ex, int exfreshcount) {
 
-        if(!ex)
-        {
-            for(Variable var:headVariables)
-            {
-                if(var.toString().equals(shv))
-                {
+        if (!ex) {
+            for (Variable var : headVariables) {
+                if (var.toString().equals(shv)) {
                     var.setName(PoolOfNames.getName(shv));
                 }
             }
         }
 
-        for(Atom atom: this.getAtoms())
-        {
-            for(Term t : atom.getTerms())
-            {
-                if(t instanceof uk.ac.soton.ecs.RelationalModel.Variable & t.toString().equals(shv))
-                {
-                    t.setName(ex?"F"+exfreshcount+""+PoolOfNames.getName(shv):PoolOfNames.getName(shv));
+        for (Atom atom : this.getAtoms()) {
+            for (Term t : atom.getTerms()) {
+                if (t instanceof uk.ac.soton.ecs.RelationalModel.Variable & t.toString().equals(shv)) {
+                    t.setName(ex ? "F" + exfreshcount + "" + PoolOfNames.getName(shv) : PoolOfNames.getName(shv));
                 }
             }
         }
     }
 
     public void substituteVarWithNew(String varInRule, String shv) {
-        for(Variable var:headVariables)
-        {
-            if(var.toString().equals(varInRule))
-            {
+        for (Variable var : headVariables) {
+            if (var.toString().equals(varInRule)) {
                 var.setName(shv);
             }
         }
 
-        for(Atom pred: this.getAtoms())
-        {
-            for(Term v : pred.getTerms())
-            {
-                if(v.toString().equals(varInRule))
+        for (Atom pred : this.getAtoms()) {
+            for (Term v : pred.getTerms()) {
+                if (v.toString().equals(varInRule))
                     v.setName(shv);
             }
         }
@@ -356,7 +337,7 @@ public class Query extends ConjunctiveQuery {
         String val = "";
         for (Atom atom : collect) {
             val = val + "," + atom.getPredicate().getName();
-            val +="("+printCollection(atom.getTerms())+")";
+            val += "(" + printCollection(atom.getTerms()) + ")";
 
         }
         val = val.replaceFirst(",", "");
@@ -388,7 +369,7 @@ public class Query extends ConjunctiveQuery {
 
     @Override
     protected Query clone() throws CloneNotSupportedException {
-        return new Query(this,source);
+        return new Query(this, source);
     }
 
     public String getName() {
@@ -397,18 +378,17 @@ public class Query extends ConjunctiveQuery {
 
     public int sumOfPredicatesSerials() {
         int sumSerNo = 0;
-        for(int i =1; i<=getBody().size(); i++)
-            {
-                sumSerNo +=i;
-            }
-        return sumSerNo ;
+        for (int i = 1; i <= getBody().size(); i++) {
+            sumSerNo += i;
+        }
+        return sumSerNo;
     }
 
-    public static Pair<Map<SourcePredicateJoin, List<SourcePredicateJoin>>, Map<SourcePredicateJoin, List<SourcePredicateJoin>>> createSourcePredicateJoins(List<Query> views) {
-        Map <SourcePredicateJoin,List<SourcePredicateJoin>> sourcePJs = new HashMap<>();
-        Map <SourcePredicateJoin,List<SourcePredicateJoin>> indexSourcePJs = new HashMap<>();
-        for(Query source :  views) {
-            Map <SourcePredicateJoin,Integer> occurences_of_the_same_pj = new HashMap<SourcePredicateJoin, Integer>();
+    public static Pair<Map<SourcePredicateJoin, List<SourcePredicateJoin>>, Map<SourcePredicateJoin, List<SourcePredicateJoin>>> createSourcePredicateJoins(List<Query> views) throws InconsistentAtomException {
+        Map<SourcePredicateJoin, List<SourcePredicateJoin>> sourcePJs = new HashMap<>();
+        Map<SourcePredicateJoin, List<SourcePredicateJoin>> indexSourcePJs = new HashMap<>();
+        for (Query source : views) {
+            Map<SourcePredicateJoin, Integer> occurences_of_the_same_pj = new HashMap<SourcePredicateJoin, Integer>();
             for (PredicateJoin pj : source.constructAndReturnPJs()) { //constructs all the pjs with their infoboxes only updated for this source
                 SourcePredicateJoin spj = new SourcePredicateJoin(pj);
 
@@ -451,17 +431,17 @@ public class Query extends ConjunctiveQuery {
             }
         }
 
-        for(SourcePredicateJoin spj: sourcePJs.keySet()) {
-            for(SourcePredicateJoin key: spj.potentialMappings())
-                addToIndex(key,spj, indexSourcePJs);//appends the value table for key with spj
+        for (SourcePredicateJoin spj : sourcePJs.keySet()) {
+            for (SourcePredicateJoin key : spj.potentialMappings())
+                addToIndex(key, spj, indexSourcePJs);//appends the value table for key with spj
         }
-        return new Pair<>(sourcePJs,indexSourcePJs);
+        return new Pair<>(sourcePJs, indexSourcePJs);
     }
 
-    private static void addToIndex(SourcePredicateJoin key, SourcePredicateJoin spj, Map<SourcePredicateJoin,List<SourcePredicateJoin>> indexSourcePJs) {
+    private static void addToIndex(SourcePredicateJoin key, SourcePredicateJoin spj, Map<SourcePredicateJoin, List<SourcePredicateJoin>> indexSourcePJs) {
         List<SourcePredicateJoin> l = indexSourcePJs.get(key);
-        if(l == null)
-            l=new ArrayList<>();
+        if (l == null)
+            l = new ArrayList<>();
         l.add(spj);
         indexSourcePJs.put(key, l);
     }
