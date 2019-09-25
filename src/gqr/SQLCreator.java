@@ -20,11 +20,11 @@ public class SQLCreator {
     }
 
     public static String queryToSQL(ConjunctiveQuery query) {
-        HashSet<Variable> distVars = new HashSet<Variable>();
-        HashMap<Variable, ArrayList<String>> columnMappings = new HashMap<Variable, ArrayList<String>>();
-        HashMap <Constant, ArrayList<String>> columnConstraints = new HashMap<Constant, ArrayList<String>>();
-        HashSet<String> predicates = new HashSet<String>();
-
+        char aliasLetter= 'A';
+        List<Variable> distVars = new ArrayList<>();
+        Map<Variable, ArrayList<String>> columnMappings = new HashMap<Variable, ArrayList<String>>();
+        Map <Constant, ArrayList<String>> columnConstraints = new HashMap<Constant, ArrayList<String>>();
+        List<String> predicates = new ArrayList<>();
         query.getHead().forEach(atom -> atom.getTerms().stream().filter(term -> term instanceof Variable).forEach(term -> distVars.add((Variable) term)));
 
         for (Atom a : query.getBody()) {
@@ -35,11 +35,11 @@ public class SQLCreator {
                     String predName = a.getPredicate().getName();
                     if (columnMappings.containsKey(var)) {
                         ArrayList<String> columns = columnMappings.get(var);
-                        columns.add("\"" + predName + "\".\"c" + i + "\"");
+                        columns.add(aliasLetter+".\"c" + i + "\"");
                         columnMappings.put(var, columns);
                     } else {
                         ArrayList<String> columns = new ArrayList<>();
-                        columns.add("\"" + predName + "\".\"c" + i + "\"");
+                        columns.add(aliasLetter+".\"c" + i + "\"");
                         columnMappings.put(var, columns);
                     }
                 } else if (a.getTerm(i) instanceof Constant) {
@@ -47,17 +47,18 @@ public class SQLCreator {
                     String predName = a.getPredicate().getName();
                     if (columnConstraints.containsKey(con)) {
                         ArrayList<String> columns = columnConstraints.get(con);
-                        columns.add("\"" + predName + "\".\"c" + i + "\"");
+                        columns.add(aliasLetter+".\"c" + i + "\"");
                         columnConstraints.put(con, columns);
                     } else {
                         ArrayList<String> columns = new ArrayList<String>();
-                        columns.add("\"" + predName + "\".\"c" + i + "\"");
+                        columns.add(aliasLetter+".\"c" + i + "\"");
                         columnConstraints.put(con, columns);
                     }
                 }
             }
+            aliasLetter++;
         }
-
+        aliasLetter='A';
         StringBuilder builder = new StringBuilder();
         builder.append("SELECT DISTINCT ");
         String prefix = "";
@@ -73,6 +74,7 @@ public class SQLCreator {
         for (String s : predicates) {
             builder.append(prefix);
             builder.append("\"").append(s).append("\"");
+            builder.append(" as ").append(aliasLetter++);
             prefix = ", ";
         }
 
@@ -102,7 +104,7 @@ public class SQLCreator {
 
     }
 
-    private static boolean equalities(HashMap<Variable, ArrayList<String>> columnMappings, HashMap<Constant, ArrayList<String>> columnConstraints) {
+    private static boolean equalities(Map<Variable, ArrayList<String>> columnMappings, Map<Constant, ArrayList<String>> columnConstraints) {
         for (Map.Entry<Variable,ArrayList<String>> entry: columnMappings.entrySet()) {
             if(entry.getValue().size() > 1) {
                 return true;
